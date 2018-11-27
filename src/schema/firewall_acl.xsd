@@ -1,0 +1,114 @@
+<!--
+ Copyright © 2017 CertusNet, Inc. and others.  All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.certusnet.com.cn/firewall_v2.xsd">
+
+<xsd:element name="firewall-group" type="ifmap:IdentityType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('is-shared', 'firewall-group') -->
+<xsd:element name="firewall-group-interface" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('firewall-group-interface',
+          'firewall-group', 'virtual-machine-interface', ['ref']) -->
+<xsd:element name="firewall-group-policies" type="FirewallGroupPolicyType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('firewall-group-policies',
+          'firewall-group', 'firewall-group-policy', ['ref']) -->
+<xsd:element name="firewall-group-network-policy" type="FirewallGroupNetworkPolicyType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('firewall-group-network-policy',
+          'firewall-group', 'network-policy', ['ref']) -->
+<xsd:element name="project-firewall-group" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-firewall-group',
+          'project', 'firewall-group', ['has']) -->
+
+<xsd:complexType name="FirewallGroupPolicyType">
+    <xsd:all>
+        <xsd:element name="direction" type="FirewallPolicyDirectionType" />
+    </xsd:all>
+</xsd:complexType>
+
+
+<xsd:complexType name="FirewallGroupNetworkPolicyType">
+    <xsd:all>
+        <xsd:element name="direction" type="FirewallGroupNetworkPolicyDirectionType" />
+    </xsd:all>
+</xsd:complexType>
+<xsd:simpleType name="FirewallGroupNetworkPolicyDirectionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ingress" />
+        <xsd:enumeration value="egress" />
+    </xsd:restriction>
+</xsd:simpleType>
+<xsd:simpleType name="FirewallPolicyDirectionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ingress" />
+        <xsd:enumeration value="egress" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="firewall-group-policy" type="ifmap:IdentityType" />
+<xsd:element name="group-policy-entries" type="FirewallGroupPolicyEntriesType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('group-policy-entries', 'firewall-group-policy') -->
+<xsd:element name="group-policy-rules" type="FirewallPolicyRuleType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('group-policy-rules',
+          'firewall-group-policy', 'firewall-group-rule', ['ref']) -->
+<xsd:element name="project-firewall-group-policy" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-firewall-group-policy',
+          'project', 'firewall-group-policy', ['has']) -->
+
+
+<xsd:complexType name="FirewallGroupPolicyEntriesType">
+    <xsd:all>
+        <xsd:element name="shared" type="xsd:boolean" />
+        <xsd:element name="audited" type="xsd:boolean" />
+    </xsd:all>
+</xsd:complexType>
+
+<xsd:element name="firewall-group-rule" type="ifmap:IdentityType" />
+<xsd:element name="firewall-group-rule-entries" type="FirewallGroupRuleEntriesType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('firewall-group-rule-entries', 'firewall-group-rule') -->
+<xsd:element name="project-firewall-group-rule" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-firewall-group-rule',
+          'project', 'firewall-group-rule', ['has']) -->
+
+<xsd:complexType name="FirewallGroupRuleEntriesType">
+    <xsd:all>
+        <xsd:element name="shared"  type="xsd:boolean" />
+        <xsd:element name="enabled" type="xsd:boolean" />
+        <xsd:element name="protocol" type="xsd:string" />
+        <xsd:element name="ip-version" type="IPVersionType" />
+        <xsd:element name="source-ip-address" type="xsd:string"/>
+        <xsd:element name="destination-ip-address" type="xsd:string" />
+        <xsd:element name="source-port" type="xsd:string" />
+        <xsd:element name="destination-port" type="xsd:string" />
+        <xsd:element name="action" type="xsd:string" />
+    </xsd:all>
+</xsd:complexType>
+
+<xsd:simpleType name="IPVersionType" default="4">
+    <xsd:restriction base="xsd:integer">
+        <xsd:enumeration value="4"/>
+        <xsd:enumeration value="6"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:complexType name="FirewallPolicyRuleType">
+    <xsd:all>
+        <xsd:element name="position" type="Position"/>
+    </xsd:all>
+</xsd:complexType>
+
+<xsd:simpleType name="Position">
+    <xsd:restriction base="xsd:integer" />
+</xsd:simpleType>
+
+</xsd:schema>

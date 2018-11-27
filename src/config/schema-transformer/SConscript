@@ -1,0 +1,104 @@
+# -*- mode: python; -*-
+
+#
+# Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+#
+import os
+
+Import('CfgmEnv')
+env = CfgmEnv.Clone()
+
+setup_sources = [
+           'setup.py',
+           'MANIFEST.in',
+           'run_tests.sh',
+           'requirements.txt',
+           'test-requirements.txt',
+           '.testr.conf',
+           '.coveragerc',
+           'test',
+          ]
+
+
+setup_sources_rules = []
+for file in setup_sources:
+    setup_sources_rules.append(
+        env.Install(Dir('.'), "#controller/src/config/schema-transformer/" + file))
+
+local_sources = [
+           '__init__.py',
+           'to_bgp.py',
+           'config_db.py',
+           'db.py',
+           'st_amqp.py',
+           'logger.py',
+          ]
+
+local_sources_rules = []
+for file in local_sources:
+    local_sources_rules.append(
+        env.Install("schema_transformer", "#controller/src/config/schema-transformer/" + file))
+
+st_introspect_pkg = env.SandeshGenPy('st_introspect.sandesh', 'schema_transformer/sandesh/', False)
+
+cd_cmd = 'cd ' + Dir('.').path + ' && '
+sdist_depends = []
+sdist_depends.extend(setup_sources_rules)
+sdist_depends.extend(local_sources_rules)
+sdist_depends.extend(st_introspect_pkg)
+sdist_gen = env.Command('dist/schema_transformer-0.1dev.tar.gz', 'setup.py',
+                        cd_cmd + 'python setup.py sdist')
+
+env.Depends(sdist_gen, sdist_depends)
+env.Default(sdist_gen)
+
+# Documentation
+doc_files = []
+doc_files += env.SandeshGenDoc('st_introspect.sandesh')
+doc_files += env['CFGM_DOC_FILES']
+
+if 'install' in BUILD_TARGETS:
+    install_cmd = env.Command(None, 'setup.py',
+                              cd_cmd + 'python setup.py install %s' %
+                              env['PYTHON_INSTALL_OPT'])
+    env.Depends(install_cmd, sdist_depends)
+    env.Alias('install', install_cmd)
+
+env.Alias('install', env.Install(env['INSTALL_CONF'], 
+    'contrail-schema.conf'))
+env.Alias('install', env.InstallAs( env['INSTALL_INITD'] + 
+    '/contrail-schema', 'contrail-schema.initd.supervisord'))
+env.Alias('install', env.InstallAs( env['INSTALL_SYSTEMD'] +
+    '/contrail-schema.service', 'systemd/contrail-schema.service'))
+env.Alias('install', env.Install(env['INSTALL_CONF']+ 
+    '/supervisord_config_files', 'contrail-schema.ini'))
+env.Alias('install', env.Install(
+    env['INSTALL_MESSAGE_DOC'] + '/contrail-schema/', doc_files))
+
+buildspace_link = os.environ.get('CONTRAIL_REPO')
+if buildspace_link:
+    # in CI environment shebang limit exceeds for python
+    # in easy_install/pip, reach to it via symlink
+    top_path = buildspace_link + '/' + Dir('.').path
+    top_dir = Dir(top_path)
+else:
+    top_dir = Dir('.')
+
+cov_cmd = env.Command('coveragetest.log', sdist_gen,
+          'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests --coverage 2>&1 | tee coveragetest.log"')
+test_cmd = env.Command('test.log', sdist_gen,
+          'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests 2>&1 | tee test.log"')
+
+test_depends = ['/config/common/dist/cfgm_common-0.1dev.tar.gz',
+                '/api-lib/dist/vnc_api-0.1dev.tar.gz',
+                '/tools/sandesh/library/python/dist/sandesh-0.1dev.tar.gz',
+                '/sandesh/common/dist/sandesh-common-0.1dev.tar.gz',
+                '/config/api-server/dist/vnc_cfg_api_server-0.1dev.tar.gz',
+                '/../noarch/config/svc-monitor/test.log',]
+env.Depends(test_cmd, [env['TOP']+x for x in test_depends])
+env.Depends(cov_cmd, [env['TOP']+x for x in test_depends])
+
+env.Alias('test', test_cmd)
+env.Alias('coverage', cov_cmd)
+env.Alias('controller/src/config/schema-transformer:test', test_cmd)
+env.Alias('controller/src/config/schema-transformer:coverage', cov_cmd)

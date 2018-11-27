@@ -1,0 +1,80 @@
+<!--
+ Copyright (c) 2013 CertusNet Networks, Inc. All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:smi="urn:ietf:params:xml:ns:opsawg:smi:base:1.0">
+
+<xsd:element name="l2-dci-connect" type="ifmap:IdentityType" />
+<xsd:element name="l2-dci-vni" type="xsd:integer" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l2-dci-vni', 'l2-dci-connect') -->
+<xsd:element name="l2-dci-network" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('l2-dci-network',
+          'l2-dci-connect', 'virtual-network', ['ref']) -->
+<xsd:element name="l2-dci-import-target-list" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l2-dci-import-target-list', 'l2-dci-connect') -->
+<xsd:element name="l2-dci-export-target-list" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l2-dci-export-target-list', 'l2-dci-connect') -->
+<xsd:element name="project-l2-dci-connect" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-l2-dci-connect',
+          'project', 'l2-dci-connect', ['has']) -->
+
+
+<xsd:element name="l3-dci-connect" type="ifmap:IdentityType" />
+<xsd:element name="l3-dci-connect-entries" type="DCIL3EntriesType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-connect-entries', 'l3-dci-connect') -->
+<xsd:element name="l3-dci-import-target-list" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-import-target-list', 'l3-dci-connect') -->
+<xsd:element name="l3-dci-export-target-list" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-export-target-list', 'l3-dci-connect') -->
+<xsd:element name="l3-dci-vrf-import-rts" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-vrf-import-rts', 'l3-dci-connect') -->
+<xsd:element name="l3-dci-vrf-export-rts" type="RouteTargetList"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-vrf-export-rts', 'l3-dci-connect') -->
+<xsd:element name="l3-dci-extra-entries" type="DCIL3ExtraEntriesType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('l3-dci-extra-entries', 'l3-dci-connect') -->
+
+
+<xsd:element name="project-l3-dci-connect" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-l3-dci-connect',
+          'project', 'l3-dci-connect', ['has']) -->
+    
+<xsd:complexType name="DCIL3EntriesType">
+    <xsd:all>
+        <xsd:element name="router-id" type="xsd:string" />
+        <xsd:element name="fw-enable" type="xsd:boolean" />
+        <xsd:element name="logic-fw-id" type="xsd:string" />
+        <xsd:element name="local-subnets" type="xsd:string" maxOccurs="unbounded" />
+        <xsd:element name="peer-cidrs" type="xsd:string" maxOccurs="unbounded" />
+        <xsd:element name="l3-vni" type="xsd:integer" />
+        <xsd:element name="data-model" type="DataModelType" />
+    </xsd:all>
+</xsd:complexType>
+    
+<xsd:simpleType name="DataModelType">
+    <xsd:restriction base="xsd:integer">
+        <xsd:enumeration value="1" />
+        <xsd:enumeration value="2" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:complexType name="DCIL3ExtraEntriesType">
+    <xsd:all>
+        <xsd:element name="vir-intf-id" type="xsd:string" />
+        <xsd:element name="in-policy-id" type="xsd:string" />
+        <xsd:element name="out-policy-id" type="xsd:string" />
+    </xsd:all>
+</xsd:complexType>
+</xsd:schema>

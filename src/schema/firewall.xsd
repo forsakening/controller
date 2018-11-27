@@ -1,0 +1,162 @@
+<!--
+ Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.contrailsystems.com/firewall.xsd">
+
+<xsd:simpleType name="FirewallActionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="allow"/>
+        <xsd:enumeration value="deny"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="FirewallNatType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="snat"/>
+        <xsd:enumeration value="dnat"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="FirewallNetDirectionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="public"/>
+        <xsd:enumeration value="internal"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:complexType name="FirewallNetType">
+    <xsd:all>
+        <xsd:element name='net_type' type='FirewallNetDirectionType'/>
+    </xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name="FirewallNetEntriesType">
+    <xsd:all>
+        <xsd:element name='left-net' type='UuidStringType'/>
+        <xsd:element name='right-net' type='UuidStringType'/>
+        <xsd:element name='enabled' type='xsd:boolean' default='true'/>
+        <xsd:element name='shared' type='xsd:boolean' default='false'/>
+    </xsd:all>
+</xsd:complexType>
+<xsd:element name="firewallnet" type="ifmap:IdentityType"/>
+<xsd:element name="firewallnet-entries" type="FirewallNetEntriesType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Property('firewallnet-entries', 'firewallnet') -->
+
+
+<xsd:complexType name="FirewallNatEntriesType">
+    <xsd:all>
+        <xsd:element name="protocol" type="xsd:string"/>
+        <xsd:element name="nat_type" type="FirewallNatType"/>
+        <xsd:element name="before_address" type="xsd:string"/>
+        <xsd:element name="before_port" type="PortType"/>
+        <xsd:element name="after_address" type="xsd:string"/>
+        <xsd:element name="after_port" type="PortType"/>
+        <xsd:element name='enabled' type='xsd:boolean' default='true'/>
+        <xsd:element name='ip_version' type='xsd:integer' default='4'/>
+        <xsd:element name='shared' type='xsd:boolean' default='false'/>
+    </xsd:all>
+</xsd:complexType>
+<xsd:element name="firewallnat" type="ifmap:IdentityType"/>
+<xsd:element name="firewallnat-entries" type="FirewallNatEntriesType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Property('firewallnat-entries', 'firewallnat') -->
+
+<xsd:complexType name="FirewallRuleEntriesType">
+    <xsd:all>
+        <xsd:element name="protocol" type="xsd:string"/>
+        <xsd:element name="src_address" type="xsd:string"/>
+        <xsd:element name="src_port" type="PortType"/>
+        <xsd:element name="dst_address" type="xsd:string"/>
+        <xsd:element name="dst_port" type="PortType"/>
+        <xsd:element name="action" type="FirewallActionType"/>
+        <xsd:element name='enabled' type='xsd:boolean' default='true'/>
+        <xsd:element name='ip_version' type='xsd:integer' default='4'/>
+        <xsd:element name='shared' type='xsd:boolean' default='false'/>
+        <xsd:element name='pre_rule' type='UuidStringType'/>
+        <xsd:element name='next_rule' type='UuidStringType'/>
+    </xsd:all>
+</xsd:complexType>
+<xsd:element name="firewallrule" type="ifmap:IdentityType"/>
+<xsd:element name="firewallrule-entries" type="FirewallRuleEntriesType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Property('firewallrule-entries', 'firewallrule') -->
+
+<xsd:complexType name="FirewallPolicyEntriesType">
+    <xsd:all>
+       <xsd:element name='audited' type='xsd:boolean' />
+       <xsd:element name='shared' type='xsd:boolean' />
+    </xsd:all>
+</xsd:complexType>
+<xsd:element name="firewallpolicy" type="ifmap:IdentityType"/>
+<xsd:element name="firewallpolicy-entries" type="FirewallPolicyEntriesType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Property('firewallpolicy-entries', 'firewallpolicy') -->
+<xsd:element name="firewallpolicy-firewallrule"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('firewallpolicy-firewallrule',
+          'firewallpolicy', 'firewallrule', ['ref'])    -->
+
+
+<xsd:complexType name="FirewallserviceEntriesType">
+    <xsd:all>
+       <xsd:element name='status' type='xsd:string'/>
+       <xsd:element name='admin_state_up' type='xsd:boolean' default='false'/>
+       <xsd:element name='shared' type='xsd:boolean' default='false'/>
+       <xsd:element name='firewall_type' type='xsd:string'/>
+       <xsd:element name='public_ip' type='xsd:string'/>
+       <xsd:element name='left_ip' type='xsd:string'/>
+       <xsd:element name='left_net' type='xsd:string'/>
+       <xsd:element name='router' type='xsd:string'/>
+       <xsd:element name='enable_ha' type='xsd:boolean' default='false'/>
+    </xsd:all>
+</xsd:complexType>
+<xsd:element name="firewallservice" type="ifmap:IdentityType"/>
+<xsd:element name="firewall-entries" type="FirewallserviceEntriesType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Property('firewall-entries', 'firewallservice') -->
+<xsd:element name="firewallservice-service-instance"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('firewallservice-service-instance',
+          'firewallservice', 'service-instance', ['ref']) -->
+<xsd:element name="firewallservice-firewallpolicy"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('firewallservice-firewallpolicy',
+          'firewallservice', 'firewallpolicy', ['ref'])    -->
+<xsd:element name="firewallservice-firewallnat"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('firewallservice-firewallnat',
+          'firewallservice', 'firewallnat', ['ref'])    -->
+<xsd:element name="firewallservice-firewallnet"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('firewallservice-firewallnet',
+          'firewallservice', 'firewallnet', ['ref'])    -->
+
+<xsd:element name="project-firewallrule"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('project-firewallrule',
+          'project', 'firewallrule', ['has']) -->	
+<xsd:element name="project-firewallservice"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('project-firewallservice',
+          'project', 'firewallservice', ['has']) -->
+<xsd:element name="project-firewallpolicy"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('project-firewallpolicy',
+          'project', 'firewallpolicy', ['has']) -->
+<xsd:element name="project-firewallnat"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('project-firewallnat',
+          'project', 'firewallnat', ['has']) -->
+<xsd:element name="project-firewallnet"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('project-firewallnet',
+          'project', 'firewallnet', ['has']) -->
+
+<xsd:element name="firewallservice-virtual-network" type="FirewallNetType"/>
+<!--#IFMAP-SEMANTICS-IDL 
+     Link('firewallservice-virtual-network',
+          'firewallservice', 'virtual-network', ['ref']) -->
+</xsd:schema>

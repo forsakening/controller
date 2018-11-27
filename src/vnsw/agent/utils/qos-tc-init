@@ -1,0 +1,22 @@
+#/bin/bash
+#$1 is the name of gateway NIC
+#set -x
+#echo $1
+
+#get Phy bw of gateway NIC
+PHY_BW=$((ethtool $1)| grep "Speed" | awk -F ' ' '{print $2}') 
+echo $PHY_BW
+STRN=${#PHY_BW}
+((LENGTH=$STRN-4))
+#echo $LENGTH
+#echo $STRN
+PHY_BW=${PHY_BW:0:$LENGTH}
+echo $PHY_BW
+#setting the right REF for the TC.
+PHY_BW=${PHY_BW}"Mbit"
+echo $PHY_BW
+sed -i "/^REF_BW1/cREF_BW1=$PHY_BW" /usr/bin/qos-gw
+
+#setting the right phy nic
+sed  -i "/^ODEV1/cODEV1=$1" /usr/bin/qos-gw
+

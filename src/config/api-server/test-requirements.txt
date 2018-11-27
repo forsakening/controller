@@ -1,0 +1,12 @@
+ipdb
+lxml>=2.3.3
+python-subunit
+testrepository
+flexmock
+coverage
+webtest
+pyaml
+keystonemiddleware!=4.19.0
+junitxml
+pyOpenSSL
+mock

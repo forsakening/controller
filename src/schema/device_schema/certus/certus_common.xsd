@@ -1,0 +1,607 @@
+<xsd:schema
+xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+targetNamespace="http://www.juniper.net/2016/device-config/0">
+
+<xsd:complexType name="Router">
+	<xsd:attribute name="xmlns" type="xsd:string" default="urn:ietf:params:xml:ns:yang:ietf-routing"/>
+    <xsd:all>
+		<xsd:element name='bgp' type="Bgp"/>
+		<xsd:element name='igmp' type="Igmp"/>
+		<xsd:element name='isis' type="Isis"/>
+		<xsd:element name='ospf' type="Ospf"/>
+		<xsd:element name='pim' type="Pim"/>
+		<xsd:element name='static' type='Static'/>
+    </xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Bgp'>
+	<xsd:attribute name="xmlns" type="xsd:string" default="http://certusnet.com/nfv/flexbng/certus-flexbng-bgp-config"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='local-as' type='xsd:integer'/>
+		<xsd:element name='router-id' type='xsd:string'/>
+		<xsd:element name='afi-safis' type='BgpAfiSafis'/>
+		<xsd:element name='evpn-traffic-relay'/>
+		<xsd:element name='neighbors' type='Neighbors'/>
+		<xsd:element name='vrf' type='BgpVrf' maxOccurs="unbounded"/>	
+		<xsd:element name='aggregate-nexthop-check' type='xsd:boolean'/>
+		<xsd:element name='as-local-count' type='xsd:integer'/>
+		<xsd:element name='bestpath' type='BestPath'/>
+		<xsd:element name='confederation' type='Confederation'/>
+		<xsd:element name='default-ipv4-unicast ' type='xsd:boolean'/>
+		<xsd:element name='default-local-preference' type='xsd:integer'/>
+		<xsd:element name='deterministic-med ' type='xsd:boolean'/>
+		<xsd:element name='enforce-first-as' type='xsd:boolean'/>
+		<xsd:element name='fast-external-failover' type='xsd:boolean'/>
+		<xsd:element name='g-shut' type='xsd:boolean'/>
+		<xsd:element name='g-shut-capable' type='xsd:boolean'/>
+		<xsd:element name='g-shut-local-preference' type='xsd:integer'/>
+		<xsd:element name='graceful-restart' type='GracefulRestart'/>
+		<xsd:element name='inbound-route-filter' type='xsd:boolean'/>
+		<xsd:element name='log-neighbor-change' type='xsd:boolean'/>
+		<xsd:element name='max-as-path' type='xsd:integer'/>
+		<xsd:element name='multiple-instance' type='MultipleInstance'/>
+		<xsd:element name='nexthop-trigger' type='NexthopTrigger'/>
+		<xsd:element name='peer-group' type='PeerGroup'/>
+		<xsd:element name='scan-time' type='xsd:integer'/>
+		<xsd:element name='update-delay' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BgpAfiSafis'>
+	<xsd:all>
+		<xsd:element name='address-family' type='BgpAddressFamily' maxOccurs="unbounded" minOccurs="0"/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BgpAddressFamily'>
+	<xsd:attribute name='xmlns:bgp-types' type='xsd:string' default='urn:ietf:params:xml:ns:yang:ietf-bgp-types'/>
+	<xsd:all>
+		<xsd:element name='afi-safi-name' type='xsd:string'/>
+		<xsd:element name='damping' type='Damping'/>
+		<xsd:element name='distance' type='Distance'/>
+		<xsd:element name='max-paths' type='MaxPaths'/>
+		<xsd:element name='redistribute' type='Redistribute'/>
+		<xsd:element name='synchronization' type='xsd:boolean'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BgpVrf'>
+	<xsd:all>
+		<xsd:element name='vrfname' type='xsd:string'/>
+		<xsd:element name='afi-safis' type='VrfAfiSafis'/>
+		<xsd:element name='neighbor' type='xsd:string'/>
+		<xsd:element name='peer-group' type='PeerGroup'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VrfAfiSafis'>
+	<xsd:all>
+		<xsd:element name='address-family' type='VrfAddressFamily' maxOccurs="unbounded"/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VrfAddressFamily'>
+	<xsd:attribute name="xmlns:bgp-types" type="xsd:string" default="urn:ietf:params:xml:ns:yang:ietf-bgp-types"/>
+	<xsd:all>
+		<xsd:element name='afi-safi-name' type='xsd:string'/>
+		<xsd:element name='damping' type='Damping'/>
+		<xsd:element name='distance' type='Distance'/>
+		<xsd:element name='max-paths' type='MaxPaths'/>
+		<xsd:element name='network' type='NetWork'/>
+		<xsd:element name='network-synchronization' type='xsd:string'/>
+		<xsd:element name='redistribute' type='Redistribute'/>
+		<xsd:element name='synchronization' type='xsd:boolean'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='NetWork'>
+	<xsd:all>
+		<xsd:element name='network-prefix' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Redistribute'>
+	<xsd:all>
+		<xsd:element name='routing-protocol' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Neighbors'> 
+	<xsd:all>
+		<xsd:element name='neighbor' type='Neighbor' maxOccurs="unbounded"/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Neighbor'>
+	<xsd:all>
+		<xsd:element name='neighbor-address' type='xsd:string'/>
+		<xsd:element name='update-source' type='UpdateSource'/>
+		<xsd:element name='remote-as' type='xsd:integer'/>
+		<xsd:element name='local-as' type='xsd:integer'/>
+		<xsd:element name='afi-safis' type='NeighborAfiSafis'/>
+		<xsd:element name='timers' type='Timers'/>
+		<xsd:element name='port' type='xsd:integer'/>
+		<xsd:element name='auth-password' type='xsd:string'/>
+		<xsd:element name='capability' type='Capability'/>
+		<xsd:element name='g-shut-timer' type='xsd:integer'/>
+		<xsd:element name='ebgp-multihop' type='xsd:integer'/>
+		<xsd:element name='restart-time' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='UpdateSource'>
+	<xsd:all>
+		<xsd:element name='ifname' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='NeighborAfiSafis'>
+	<xsd:all>
+		<xsd:element name='address-family' type='NeighborAddressFamily' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='NeighborAddressFamily'>
+	<xsd:attribute name="xmlns:bgp-types" type="xsd:string" default="urn:ietf:params:xml:ns:yang:ietf-bgp-types"/>
+	<xsd:all>
+		<xsd:element name='afi-safi-name' type='xsd:string'/>
+		<xsd:element name='defaultoriginatevrf' type='DefaultOriginateVrf'/>
+		<xsd:element name='send-community' type='xsd:string'/>
+		<xsd:element name='irb-mode' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='DefaultOriginateVrf'>
+	<xsd:all>
+		<xsd:element name='default-originate-vrf' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='L2smVfi'>
+	<xsd:attribute name="xmlns" type="xsd:string" default="http://certusnet.com/nfv/flexbng/certusnet-flexbng-l2sm"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='vfi' type='Vfi' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Vfi'>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='vfi-name' type='xsd:string'/>
+		<xsd:element name='vfi-idx' type='xsd:integer'/>
+		<xsd:element name='flooding' type='xsd:string'/>
+		<xsd:element name='arp-suppression' type='ArpSuppression'/>
+		<xsd:element name='gateway' type='xsd:string'/>
+		<xsd:element name='host-mac' type='xsd:string'/>
+		<xsd:element name='mac-aging' type='xsd:integer'/>
+		<xsd:element name='remote' type='Remote'/>
+		<xsd:element name='service' type='VfiService'/>
+		<xsd:element name='service-instance' type='VfiServiceInstance'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ArpSuppression'>
+	<xsd:all>
+		<xsd:element name='enable'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VfiServiceInstance'>
+	<xsd:all>
+		<xsd:element name='instance-id' type='xsd:integer'/>
+		<xsd:element name='access-mode' type='xsd:string'/>
+		<xsd:element name='flood-enable' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Remote'>
+	<xsd:all>
+		<xsd:element name='vxlan-tunnel' type='VxlanTunnelConf'/>		
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VxlanTunnelConf'>
+	<xsd:all>
+		<xsd:element name='mac-learning' type='xsd:string'/>
+		<xsd:element name='arp-learning' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VfiService'>
+	<xsd:all>
+		<xsd:element name='type' type='xsd:string'/>
+		<xsd:element name='evpn' type='ServiceTypeEvpn'/>
+		<xsd:element name='vpls' type='ServiceTypeVpls'/>
+		<xsd:element name='vpws' type='ServiceTypeVpws'/>
+		<xsd:element name='vxlan' type='ServiceTypeVxlan'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ServiceTypeEvpn'>
+	<xsd:all>
+		<xsd:element name='encapsulation' type='xsd:string' default='VXLAN'/>
+		<xsd:element name='rd' type='xsd:string'/>
+		<xsd:element name='route-target' type='RouteTarget'/>
+		<xsd:element name='sticky-mac-addresses' type='xsd:string'/>
+		<xsd:element name='vni' type='xsd:integer'/>
+		<xsd:element name='vtep-source' type='xsd:string'/>
+		<xsd:element name='xconnect-vrf' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ServiceTypeVxlan'>
+	<xsd:all>
+		<xsd:element name='tunnel-id' type='xsd:integer'/>
+		<xsd:element name='udp-sport' type='xsd:integer'/>
+		<xsd:element name='vni' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='RouteTarget'>
+	<xsd:all>
+		<xsd:element name='export' type='xsd:string' maxOccurs='unbounded'/>
+		<xsd:element name='import' type='xsd:string' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ServiceInstance'>
+	<xsd:attribute name="xmlns" type="xsd:string" defualt="http://certusnet.com/nfv/flexbng/certusnet-flexbng-l2sm"/>
+	<xsd:attribute name="operation" type="xsd:string"/>
+	<xsd:all>
+		<xsd:element name='instance' type='Instance' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Instance'>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='instance-id' type='xsd:integer'/>
+		<xsd:element name='bind' type='InstanceBind'/>
+		<xsd:element name='rewrite' type='InstanceRewrite'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='InstanceBind'>
+	<xsd:all>
+		<xsd:element name='port' type='InstanceBindPort'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='InstanceBindPort'>
+	<xsd:all>
+		<xsd:element name='name' type='xsd:string'/>
+		<xsd:element name='vlan' type='InstanceBindPortVlan'/>
+		<xsd:element name='qinq' type='InstanceBindPortQinq'/>
+		<xsd:element name='vni' type='InstanceBindPortVni'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='InstanceBindPortVlan'>
+	<xsd:all>
+		<xsd:element name='vlan-id' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='L3vpn'>
+	<xsd:attribute name="xmlns" type="xsd:string" defautl="http://certusnet.com/nfv/flexbng/certusnet-flexbng-l3vpn"/>
+	<xsd:attribute name="operation" type="xsd:string"/>
+	<xsd:all>
+		<xsd:element name='vrf' type='Vrf' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Vrf'>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='vrfname' type='xsd:string'/>
+		<xsd:element name='vrf-index' type='xsd:integer'/>
+		<xsd:element name='evpn-rt5-enable'/>
+		<xsd:element name='rd' type='xsd:string'/>
+		<xsd:element name='route-target' type='RouteTarget'/>
+		<xsd:element name='address-family' type='L3vpnVrfAddressFamily'/>
+		<xsd:element name='import_map' type='xsd:string'/>
+		<xsd:element name='max-route-limit' type='xsd:integer'/>
+		<xsd:element name='nexthop' type='VrfNexthop'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='L3vpnVrfAddressFamily'>
+	<xsd:all>
+		<xsd:element name='family' type='xsd:string' default='l2vpn-evpn'/>
+		<xsd:element name='l3-vni' type='xsd:integer'/>
+		<xsd:element name='route-target' type='RouteTarget'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Interfaces'>
+	<xsd:attribute name='xmlns' type='xsd:string' default="urn:ietf:params:xml:ns:yang:ietf-interfaces"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='interface' type='Interface' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Interface'>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='name' type='xsd:string'/>
+		<xsd:element name='description' type='xsd:string'/>
+		<xsd:element name='alias-name' type='xsd:string'/>
+		<xsd:element name='dot1q' type='Dot1q'/>
+		<xsd:element name='arp' type='InterfaceArp'/>
+		<xsd:element name='bind' type='InterfaceBind'/>
+		<xsd:element name='gateway-mac' type='xsd:string'/>
+		<xsd:element name='ip' type='Ip'/>
+		<xsd:element name='ipv4' type='Ipv4'/>
+		<xsd:element name='ipv6' type='Ipv6'/>
+		<xsd:element name='mtu' type='xsd:integer'/>
+		<xsd:element name='portswitch' type='xsd:boolean'/>
+		<xsd:element name='nat' type='InterfaceNat'/>
+		<xsd:element name='label-switching' type='xsd:boolean'/>
+		<xsd:element name='shutdown' type='xsd:boolean'/>
+		<xsd:element name='tunnel' type='Tunnel'/>
+		<xsd:element name='unicast-source' type='UnicastSource'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Dot1q'>
+	<xsd:all>
+		<xsd:element name='number' type='Dot1qNumber'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Dot1qNumber'>
+	<xsd:all>
+		<xsd:element name='dot1q-vlan' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='InterfaceBind'>
+	<xsd:all>
+		<xsd:element name='acl' type='BindAcl'/>
+		<xsd:element name='qos' type='BindQos'/>
+		<xsd:element name='vfi' type='BindVfi'/>
+		<xsd:element name='vni' type='BindVni'/>
+		<xsd:element name='vrf' type='BindVrf'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BindQos'>
+	<xsd:attribute name='xmlns' type='xsd:string' default="http://certusnet.com/nfv/flexbng/certus-flexbng-qos"/>
+	<xsd:all>
+		<xsd:element name='in' type='QosIn'/>
+		<xsd:element name='out' type='QosOut'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='QosIn'>
+	<xsd:all>
+		<xsd:element name='qos-in-name' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='QosOut'>
+	<xsd:all>
+		<xsd:element name='qos-out-name' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BindVrf'>
+	<xsd:all>
+		<xsd:element name='vrf-name' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BindVni'>
+	<xsd:all>
+		<xsd:element name='vni' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='BindVfi'>
+	<xsd:all>
+		<xsd:element name='vfi' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Ipv4'>
+	<xsd:all>
+		<xsd:element name='address' type='Address'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Address'>
+	<xsd:all>
+		<xsd:element name='ip-address' type='xsd:string'/>
+		<xsd:element name='ip-mask' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Tunnel'>
+	<xsd:all>
+		<xsd:element name='source' type='xsd:string'/>
+		<xsd:element name='destination' type='xsd:string'/>
+		<xsd:element name='checksum' type='xsd:boolean'/>
+		<xsd:element name='key' type='xsd:integer'/>
+		<xsd:element name='vrf' type='TunnelVrf'/>
+		<xsd:element name='mode' type='TunnelMode'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Static'>
+	<xsd:attribute name='xmlns' type='xsd:string' default="http://certusnet.com/nfv/flexbng/certus-flexbng-rtm"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='ip' type='StaticIp'/>
+		<xsd:element name='ipv6' type='StaticIpv6'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='StaticIp'>
+	<xsd:all>
+		<xsd:element name='route' type='StaticIpRoute'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='StaticIpRoute'>
+	<xsd:all>
+		<xsd:element name='vrf' type='StaticIpRouteVrf' maxOccurs='unbounded'/>
+		<xsd:element name='default_vrf' type='StaticIpRouteDVrf' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='StaticIpRouteVrf'>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='vrfname' type='xsd:string'/>
+		<xsd:element name='prefix' type='xsd:string'/>
+		<xsd:element name='netmask' type='xsd:string'/>
+		<xsd:element name='nexthop' type='VrfNexthop'/>
+		<xsd:element name='ifname' type='VrfIfname'/>
+		<xsd:element name='ifname-nexthop' type='VrfIfnameNexthop'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VrfNexthop'>
+	<xsd:all>
+		<xsd:element name='ip-gateway' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VrfIfname'>
+	<xsd:all>
+		<xsd:element name='if-name' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='VrfIfnameNexthop'>
+	<xsd:all>
+		<xsd:element name='if-name' type='xsd:string'/>
+		<xsd:element name='ip-gateway' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Policy'>
+	<xsd:attribute name='xmlns' type='xsd:string' default='http://certusnet.com/nfv/flexbng/certus-flexbng-qos'/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='name' type='xsd:string'/>
+		<xsd:element name='cb' type='Cb' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Cb'>
+	<xsd:all>
+		<xsd:element name='class_map' type='xsd:string'/>
+		<xsd:element name='behavior' type='xsd:string'/>
+		<xsd:element name='priority' type='xsd:integer' default='1' />
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ClassMap'>
+	<xsd:attribute name='xmlns' type='xsd:string' default='http://certusnet.com/nfv/flexbng/certus-flexbng-qos'/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='name' type='xsd:string'/>
+		<xsd:element name='match-way' type='xsd:string' default='match-any'/>
+		<xsd:element name='match' type='ClassMapMatch'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ClassMapMatch'>
+	<xsd:all>
+		<xsd:element name='all' type='xsd:boolean'/>
+		<xsd:element name='cos' type='ClassMapMatchCos' maxOccurs='unbounded'/>
+		<xsd:element name='dest-mac' type='ClassMapMatchMac' maxOccurs='unbounded'/>
+		<xsd:element name='source-mac' type='ClassMapMatchMac' maxOccurs='unbounded'/>
+		<xsd:element name='dscp' type='ClassMapMatchDscp' maxOccurs='unbounded'/>
+		<xsd:element name='ethertype' type='ClassMapMatchEther' maxOccurs='unbounded'/>
+		<xsd:element name='ipv4-source-port' type='ClassMapMatchPort' maxOccurs='unbounded'/>
+		<xsd:element name='ipv4-dest-port' type='ClassMapMatchPort' maxOccurs='unbounded'/>
+		<xsd:element name='ipv4-protocol' type='ClassMapMatchProto' maxOccurs='unbounded'/>
+		<xsd:element name='mpls-exp' type='ClassMapMatchMpls' maxOccurs='unbounded'/>
+		<xsd:element name='precedence' type='ClassMapMatchPrecedence' maxOccurs='unbounded'/>
+		<xsd:element name='tos' type='ClassMapMatchTos' maxOccurs='unbounded'/>
+		<xsd:element name='vlan' type='ClassMapMatchVlan' maxOccurs='unbounded'/>
+		<xsd:element name='ipv4-dest-address' type='ClassMapMatchIpv4'/>
+		<xsd:element name='ipv4-source-address' type='ClassMapMatchIpv4'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='ClassMapMatchIpv4'>
+	<xsd:all>
+		<xsd:element name='values' type='Value' maxOccurs='unbounded'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Value'>
+	<xsd:all>
+		<xsd:element name='ipv4_addr' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Behavior'>
+	<xsd:attribute name='xmlns' type='xsd:string' default="http://certusnet.com/nfv/flexbng/certus-flexbng-qos"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='name' type='xsd:string'/>
+		<xsd:element name='car' type='Car'/>
+		<xsd:element name='cbq' type='Cbq'/>
+		<xsd:element name='remark' type='Remark'/>
+		<xsd:element name='service_policy' type='ServicePolicy'/>
+		<xsd:element name='set' type='Set'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='Car'>
+	<xsd:all>
+		<xsd:element name='cir' type='xsd:integer'/>
+		<xsd:element name='pir' type='xsd:integer'/>
+		<xsd:element name='cbs' type='xsd:integer'/>
+		<xsd:element name='pbs' type='xsd:integer'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='SystemMac'>
+	<xsd:attribute name='xmlns' type='xsd:string' default="http://certusnet.com/nfv/flexbng/certusnet-flexbng-l2sm"/>
+	<xsd:attribute name='operation' type='xsd:string'/>
+	<xsd:all>
+		<xsd:element name='system-mac' type='xsd:string'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='config'>
+	<xsd:attribute name='xmlns:xc' type='xsd:string' default='urn:ietf:params:xml:ns:netconf:base:1.0'/>
+	<xsd:all>
+		<xsd:element name='interfaces' type='Interfaces'/>
+		<xsd:element name='l3vpn' type='L3vpn'/>
+		<xsd:element name='l2sm-vfi' type='L2smVfi'/>
+		<xsd:element name='service-instance' type='ServiceInstance'/>
+		<xsd:element name='router' type='Router'/>
+		<xsd:element name='policy' type='Policy' maxOccurs='unbounded'/>
+		<xsd:element name='class_map' type='ClassMap' maxOccurs='unbounded'/>
+		<xsd:element name='behavior' type='Behavior' maxOccurs='unbounded'/>
+		<xsd:element name='nat' type='Nat'/>
+		<xsd:element name='system-mac' type='SystemMac'/>
+	</xsd:all>
+</xsd:complexType>
+
+<xsd:complexType name='data'>
+	<xsd:attribute name='xmlns:xc' type='xsd:string' default='urn:ietf:params:xml:ns:netconf:base:1.0'/>
+	<xsd:all>
+		<xsd:element name='router' type='Router'/>
+		<xsd:element name='service-instance' type='ServiceInstance'/>
+		<xsd:element name='l2sm-vfi' type='L2smVfi'/>
+		<xsd:element name='interfaces' type='Interfaces'/>
+		<xsd:element name='l3vpn' type='L3vpn'/>
+		<xsd:element name='policy' type='Policy' maxOccurs='unbounded'/>
+		<xsd:element name='class_map' type='ClassMap' maxOccurs='unbounded'/>
+		<xsd:element name='behavior' type='Behavior' maxOccurs='unbounded'/>
+		<xsd:element name='nat' type='Nat'/>
+		<xsd:element name='system-mac' type='SystemMac'/>
+	</xsd:all>
+</xsd:complexType>
+
+</xsd:schema>

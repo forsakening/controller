@@ -1,0 +1,150 @@
+#!/bin/bash
+# This scripts control incomming and outcomming bandwight in a linux router box
+# The linux box only have one eth0 connect to the local network and other to internet
+# ifb0 is a a special device create only for limit the incomming bandwight in eth0
+# It is configured for match a 192.168.1.0/24 network, with 255 hosts
+# The limit for up/down is 20Mb (20480kbit), divide this bandwight for every host (in this case 80kbit)
+# Interface connect to out lan
+#set -x
+for var in $@
+do
+   eval "$var"
+done
+int1=$DEV
+modprobe ifb numifbs=1
+# Interface virtual for incomming traffic
+tin1=''
+if [[ "$int1" =~ 'veth' ]];then
+    tin1=$(echo "$int1"|sed -e 's/^veth/ifb/')
+else
+    tin1=$(echo "$int1"|sed -e 's/^tap/ifb/')
+fi
+if [ !  -e /sys/class/net/$tin1 ];then
+   ip link add  name $tin1 type ifb
+fi
+# It's necessary load this module in the kernel for do it
+ip link set dev $tin1 up
+## Limit outcomming traffic (to internet)
+# Clean interface
+if [ "$QOS_INBOUND" == "-1" ];then
+    QOS_INBOUND="10485760"  #10Gbit/1024
+fi
+if [ "$QOS_OUTBOUND" == "-1" ];then
+    QOS_OUTBOUND="10485760"  #10Gbit/1024
+fi
+#if in(out)bound is 0,reset it to 1
+if [ "$QOS_INBOUND" == "0" ];then
+    QOS_INBOUND="10485760"  #10Gbit/1024
+fi
+if [ "$QOS_OUTBOUND" == "0" ];then
+    QOS_OUTBOUND="10485760"  #10Gbit/1024
+fi
+if [ "$FIP_INBOUND" == "0" ];then
+    FIP_INBOUND="10485760"  #10Gbit/1024
+fi
+if [ "$FIP_OUTBOUND" == "0" ];then
+    FIP_OUTBOUND="10485760"  #10Gbit/1024
+fi
+if [ "$QOS_BURST" == "" -o "$QOS_BURST" == "0" ];then
+   QOS_BURST=100
+fi
+    
+if [ "$QOS_OUTBOUND" != "" -a "$QOS_INBOUND" != "" ];then
+            tc qdisc del root dev $int1 2>/dev/null
+            # Add classes per ip
+            tc qdisc add dev $int1 root handle 1: htb default 10
+            if [ "$QOS_IN_BURST" == "-1" ];then
+                tc class add dev $int1 parent 1: classid 1:1 htb rate ${QOS_INBOUND}kbit  burst ${QOS_BURST}
+                tc class add dev $int1 parent 1:1 classid 1:10 htb rate ${QOS_INBOUND}kbit
+            else
+                tc class add dev $int1 parent 1: classid 1:1 htb rate ${QOS_INBOUND}kbit ceil ${QOS_IN_BURST}kbit burst ${QOS_BURST}
+                tc class add dev $int1 parent 1:1 classid 1:10 htb rate ${QOS_INBOUND}kbit ceil ${QOS_IN_BURST}kbit
+            fi
+            tc qdisc add dev $int1  parent 1:10 handle 10 sfq perturb 60
+            #done
+            # Match ip and put it into the respective class
+            #for i in $(seq 1 255); do
+            if [ "$FIP_INBOUND" != "-1" ];then
+                if [ "$FIP_IN_BURST" == "-1" ];then
+                    tc class add dev $int1 parent 1:1 classid 1:11 htb rate ${FIP_INBOUND}kbit
+                else
+                    tc class add dev $int1 parent 1:1 classid 1:11 htb rate ${FIP_INBOUND}kbit ceil ${FIP_IN_BURST}kbit
+                fi
+                tc qdisc add dev $int1  parent 1:11 handle 11 sfq perturb 60
+                OLDIFS=$IFS
+                IFS=','
+                for item in $NETWORK_CIDRS
+                do
+                    tc filter add dev $int1 protocol ip parent 1: prio 10 u32 match ip src $item flowid 1:10
+                done
+                IFS=$OLDIFS
+                tc filter add dev $int1 protocol ip parent 1: prio 1 u32 match ip src 0.0.0.0/0 flowid 1:11
+            else
+                tc filter add dev $int1 protocol ip parent 1: prio 1 u32 match ip src 0.0.0.0/0 flowid 1:10
+            fi
+            #done
+    #else
+    #        tc qdisc del root dev $int1 2>/dev/null
+    #        tc qdisc add dev $int1 root handle 1: dsmark indices 8
+    #        #tc class change dev $int1 parent 1: classid 1:1 dsmark mask 0x00 value 0xb8
+    #        tc class change dev $int1 parent 1: classid 1:1 dsmark mask 0x00 value 0x20
+    #        tc class change dev $int1 parent 1: classid 1:2 dsmark mask 0x00 value 0x40
+    #        tc class change dev $int1 parent 1: classid 1:3 dsmark mask 0x00 value 0x80
+    #        tc class change dev $int1 parent 1: classid 1:5 dsmark mask 0x00 value 0xa0
+    #        tc class change dev $int1 parent 1: classid 1:6 dsmark mask 0x00 value 0xc0
+    #        tc class change dev $int1 parent 1: classid 1:7 dsmark mask 0x00 value 0xe0
+    #        tc filter add dev $int1 parent 1:0 protocol ip prio 1 u32 match ip dst 0.0.0.0/0 flowid 1:${QOS_DSCP}
+    #        tc qdisc add dev $int1 parent 1:0 handle 2:  htb default 1
+    #        tc class add dev $int1 parent 2:0 classid 2:1 htb rate ${QOS_OUTBOUND}kbit ceil ${QOS_OUTBOUND}kbit burst ${QOS_BURST}K
+    #        tc filter add dev $int1 parent 2:0 protocol ip prio 1 u32 match ip dst 0.0.0.0/0 flowid 2:1
+    #       
+    #fi
+else
+    tc qdisc del root dev $int1 2>/dev/null
+
+fi
+if [[ "$int1" =~ 'veth' ]];then
+    exit
+fi
+if [ "$QOS_INBOUND" != "" -a "$QOS_OUTBOUND" != "" ];then
+    ## Limit incomming traffic ( to localhost)
+    # Clean interface
+    tc qdisc del dev $int1 handle ffff: ingress
+    tc qdisc del root dev $tin1
+    tc qdisc add dev $int1 handle ffff: ingress
+    # Redirecto ingress eth0 to egress ifb0
+    tc filter add dev $int1 parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev $tin1
+    # Add classes per ip
+    tc qdisc add dev $tin1 root handle 2: htb default 10
+    if [ "$QOS_OUT_BURST" == "-1" ];then
+       tc class add dev $tin1 parent 2: classid 2:1 htb rate ${QOS_OUTBOUND}kbit burst ${QOS_BURST}
+       tc class add dev $tin1 parent 2:1 classid 2:10 htb rate ${QOS_OUTBOUND}kbit
+    else
+       tc class add dev $tin1 parent 2: classid 2:1 htb rate ${QOS_OUTBOUND}kbit ceil ${QOS_OUT_BURST}kbit burst ${QOS_BURST}
+       tc class add dev $tin1 parent 2:1 classid 2:10 htb rate ${QOS_OUTBOUND}kbit ceil ${QOS_OUT_BURST}kbit
+    fi
+
+    tc qdisc add dev $tin1  parent 2:10 handle 10 sfq perturb 60
+    # Match ip and put it into the respective class
+    if [ "$FIP_OUTBOUND" != "-1" ];then
+        if [ "$FIP_OUT_BURST" == "-1" ]; then
+            tc class add dev $tin1 parent 2:1 classid 2:11 htb rate ${FIP_OUTBOUND}kbit
+        else
+            tc class add dev $tin1 parent 2:1 classid 2:11 htb rate ${FIP_OUTBOUND}kbit ceil ${FIP_OUT_BURST}kbit
+        fi
+        tc qdisc add dev $tin1  parent 2:11 handle 11 sfq perturb 60
+        OLDIFS=$IFS
+        IFS=','
+        for item in $NETWORK_CIDRS
+        do
+             tc filter add dev $tin1 protocol ip parent 2: prio 10 u32 match ip dst $item flowid 2:10
+        done
+        IFS=$OLDIFS
+        tc filter add dev $tin1 protocol ip parent 2: prio 1 u32 match ip dst 0.0.0.0/0  flowid 2:11
+    else 
+        tc filter add dev $tin1 protocol ip parent 2: prio 1 u32 match ip dst 0.0.0.0/0  flowid 2:10
+    fi
+else
+    tc qdisc del dev $int1 handle ffff: ingress 2>/dev/null
+    tc qdisc del root dev $tin1 2>/dev/null
+fi

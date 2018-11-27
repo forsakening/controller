@@ -1,0 +1,89 @@
+#
+# Copyright (c) 2013 Contrail Systems. All rights reserved.
+#
+
+import os
+import glob
+
+Import('CfgmEnv')
+env = CfgmEnv.Clone()
+
+source_files = ['setup.py',
+                '__init__.py',
+                'vnc_openstack/__init__.py',
+                'vnc_openstack/context.py',
+                'vnc_openstack/neutron_plugin_db.py',
+                'vnc_openstack/neutron_plugin_interface.py']
+
+source_rules = []
+for file in source_files:
+    if len(file.split('/')) > 1:
+        idir = '/'.join(file.split('/')[:-1])
+    else:
+        idir = ''
+    source_rules.append(
+        env.Install(idir, "#/controller/src/config/vnc_openstack/" + file))
+
+test_sources = [
+           'run_tests.sh',
+           'requirements.txt',
+           'test-requirements.txt',
+           '.testr.conf',
+           '.coveragerc',
+           'vnc_openstack/tests',
+          ]
+
+test_sources_rules = []
+for file in test_sources:
+    test_sources_rules.append(
+       env.Install(Dir('.'), "#controller/src/config/vnc_openstack/" + file))
+
+cd_cmd = 'cd ' + Dir('.').path + ' && '
+sdist_depends = []
+sdist_depends.extend(source_rules)
+sdist_depends.extend(test_sources_rules)
+sdist_gen = env.Command('dist', 'setup.py', cd_cmd + 'python setup.py sdist')
+
+env.Depends(sdist_gen, sdist_depends)
+env.Default(sdist_gen)
+
+if 'install' in BUILD_TARGETS:
+    install_cmd = env.Command(None, 'setup.py',
+                              cd_cmd + 'python setup.py install %s' %
+                              env['PYTHON_INSTALL_OPT'])
+    env.Depends(install_cmd, sdist_depends)
+    env.Alias('install', install_cmd)
+
+buildspace_link = os.environ.get('CONTRAIL_REPO')
+if buildspace_link:
+    # in CI environment shebang limit exceeds for python
+    # in easy_install/pip, reach to it via symlink
+    top_path = buildspace_link + '/' + Dir('.').path
+    top_dir = Dir(top_path)
+else:
+    top_dir = Dir('.')
+
+cov_cmd = env.Command('coveragetest.log', sdist_gen,
+          'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests --coverage 2>&1 | tee coveragetest.log"')
+test_cmd = env.Command('test.log', sdist_gen,
+          'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests 2>&1 | tee test.log"')
+
+test_depends = ['/config/common/dist/cfgm_common-0.1dev.tar.gz',
+                '/api-lib/dist/vnc_api-0.1dev.tar.gz',
+                '/tools/sandesh/library/python/dist/sandesh-0.1dev.tar.gz',
+                '/sandesh/common/dist/sandesh-common-0.1dev.tar.gz',
+                '/config/api-server/dist/vnc_cfg_api_server-0.1dev.tar.gz',]
+env.Depends(test_cmd, [env['TOP']+x for x in test_depends])
+env.Depends(cov_cmd, [env['TOP']+x for x in test_depends])
+
+env.Alias('test', test_cmd)
+env.Alias('coverage', cov_cmd)
+env.Alias('controller/src/config/vnc_openstack:test', test_cmd)
+env.Alias('controller/src/config/vnc_openstack:coverage', cov_cmd)
+
+# This add'l alias is to allow retry of UT in CI
+env.Alias('controller/src/config/vnc_openstack/vnc_openstack:test', test_cmd)
+
+# Local Variables:
+# mode: python
+# End:

@@ -1,0 +1,209 @@
+<!--
+ Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.contrailsystems.com/ipsecvpn.xsd">
+
+<xsd:simpleType name="UuidStringType">
+    <xsd:restriction base="xsd:string">
+        <xsd:pattern value=
+        "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="AuthAlgorithmType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="sha1"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="EncryptionAlgorithmType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="3des"/>
+        <xsd:enumeration value="aes-128"/>
+        <xsd:enumeration value="aes-192"/>
+        <xsd:enumeration value="aes-256"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="IkeVersionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="v1"/>
+        <xsd:enumeration value="v2"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="PfsType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="group2"/>
+        <xsd:enumeration value="group5"/>
+        <xsd:enumeration value="group14"/>        
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="EncapsulationModeType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="tunnel"/>
+        <xsd:enumeration value="transport"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="TransformProtocolType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="esp"/>
+        <xsd:enumeration value="ah"/>
+        <xsd:enumeration value="esp-ah"/>        
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="DpdActionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="hold"/>
+        <xsd:enumeration value="clear"/>
+        <xsd:enumeration value="disabled"/>
+        <xsd:enumeration value="restart"/>
+        <xsd:enumeration value="restart-by-peer"/>           
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="InitiatorType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="bi-directional"/>
+        <xsd:enumeration value="response-only"/>
+    </xsd:restriction>
+</xsd:simpleType>
+
+
+<xsd:element name="vpnservice" type="ifmap:IdentityType"/>
+<xsd:element name="project-vpnservice"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-vpnservice',
+          'project', 'vpnservice', ['has']) -->
+
+<xsd:element name="vpnservice-service-instance"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('vpnservice-service-instance',
+          'vpnservice', 'service-instance', ['ref']) -->
+
+<xsd:element name="vpnservice-virtual-machine-interface"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('vpnservice-virtual-machine-interface',
+          'vpnservice', 'virtual-machine-interface', ['ref']) -->
+
+<xsd:element name="vpnservice-properties" type="VpnServiceType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('vpnservice-properties', 'vpnservice') -->
+
+<xsd:complexType name='VpnServiceType'>
+    <xsd:sequence>
+        <xsd:element name='status' type='xsd:string'/>
+        <xsd:element name='status-description' type='xsd:string'/>
+        <xsd:element name='admin-state' type='xsd:boolean' default='true'/>
+        <xsd:element name='logical-router-id' type='UuidStringType'/>
+        <xsd:element name='subnet-id' type='UuidStringType'/>
+        <xsd:element name='vpn_type' type='xsd:string'/>
+    </xsd:sequence>
+</xsd:complexType>
+
+<xsd:element name="vpnservice-logical-router"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('vpnservice-logical-router',
+          'vpnservice', 'logical-router', ['ref']) -->
+
+
+<xsd:element name="vpnservice-provider" type="xsd:string"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('vpnservice-provider', 'vpnservice') -->
+
+<xsd:element name="ipsecsite-connection" type="ifmap:IdentityType"/>
+<xsd:element name="ipsecsite-connection-properties" type="IpsecsiteConnectionType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('ipsecsite-connection-properties', 'ipsecsite-connection') -->
+
+<xsd:element name="project-ipsecsite-connection"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-ipsecsite-connection',
+          'project', 'ipsecsite-connection', ['has']) -->
+
+<xsd:complexType name='IpsecsiteConnectionType'>
+    <xsd:sequence>
+        <xsd:element name='vpnservice-id' type='UuidStringType'/>
+        <xsd:element name='ikepolicy-id' type='UuidStringType'/>
+        <xsd:element name='ipsecpolicy-id' type='UuidStringType'/>
+        <xsd:element name='peer-address' type='xsd:string'/>
+        <xsd:element name='peer-id' type='xsd:string'/>
+        <xsd:element name='peer-cidrs' type='xsd:string' maxOccurs="unbounded"/>
+        <xsd:element name='psk' type='xsd:string'/>
+        <xsd:element name='mtu' type='xsd:integer'/>
+        <xsd:element name='dpd-action' type='DpdActionType'/>
+        <xsd:element name='dpd-interval' type='xsd:integer'/>
+        <xsd:element name='dpd-timeout' type='xsd:integer'/>
+        <xsd:element name='initiator' type='InitiatorType'/>
+        <xsd:element name='admin-state' type='xsd:boolean' default='true'/>
+    </xsd:sequence>
+</xsd:complexType>
+
+<xsd:element name="ipsecsite-connection-vpnservice"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('ipsecsite-connection-vpnservice',
+          'ipsecsite-connection', 'vpnservice', ['ref'])    -->
+
+<xsd:element name="ipsecsite-connection-ikepolicy"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('ipsecsite-connection-ikepolicy',
+          'ipsecsite-connection', 'ikepolicy', ['ref'])    -->
+
+<xsd:element name="ipsecsite-connection-ipsecpolicy"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('ipsecsite-connection-ipsecpolicy',
+          'ipsecsite-connection', 'ipsecpolicy', ['ref'])    -->
+
+<xsd:element name="ikepolicy" type="ifmap:IdentityType"/>
+<xsd:element name="project-ikepolicy"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-ikepolicy',
+          'project', 'ikepolicy', ['has']) -->
+
+
+<xsd:element name="ikepolicy-properties" type="IkePolicyType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('ikepolicy-properties', 'ikepolicy') -->
+
+<xsd:complexType name='IkePolicyType'>
+    <xsd:sequence>
+        <xsd:element name='auth-algorithm' type='AuthAlgorithmType'/>
+        <xsd:element name='encryption-algorithm' type='EncryptionAlgorithmType'/>
+        <xsd:element name='ike-version' type='IkeVersionType'/>
+        <xsd:element name='lifetime-units' type='xsd:string'/>
+        <xsd:element name='lifetime-value' type='xsd:integer'/>
+        <xsd:element name='pfs' type='PfsType'/>
+        <xsd:element name='phase1-negotiation-mode' type='xsd:string'/>
+    </xsd:sequence>
+</xsd:complexType>
+
+
+<xsd:element name="ipsecpolicy" type="ifmap:IdentityType"/>
+<xsd:element name="project-ipsecpolicy"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-ipsecpolicy',
+          'project', 'ipsecpolicy', ['has']) -->
+
+
+<xsd:element name="ipsecpolicy-properties" type="IpsecPolicyType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('ipsecpolicy-properties', 'ipsecpolicy') -->
+
+<xsd:complexType name='IpsecPolicyType'>
+    <xsd:sequence>
+        <xsd:element name='auth-algorithm' type='AuthAlgorithmType'/>
+        <xsd:element name='encapsulation-mode' type='EncapsulationModeType'/>
+        <xsd:element name='encryption-algorithm' type='EncryptionAlgorithmType'/>
+        <xsd:element name='lifetime-units' type='xsd:string'/>
+        <xsd:element name='lifetime-value' type='xsd:integer'/>
+        <xsd:element name='pfs' type='PfsType'/>
+        <xsd:element name='transform-protocol' type='TransformProtocolType'/>
+    </xsd:sequence>
+</xsd:complexType>
+
+</xsd:schema>

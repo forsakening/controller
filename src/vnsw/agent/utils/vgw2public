@@ -1,0 +1,40 @@
+#!/bin/bash
+#set -x
+echo "applying vgw routing rules: action $1"
+####add routes for vgw and system will run it when vgw starts.
+start() {
+echo "starting routing"
+#vgw120
+#ip rule add from 172.16.120.128/25 table 120
+#ip route add default dev ens35 via 192.168.120.5 table 120
+}
+
+####del routes for vgw and system will delete it when vgw stops.
+stop() {
+echo "stoping routing"
+#vgw120
+#ip route del default table 120
+#ip rule delete from 172.16.120.128/25 table 120
+}
+
+case "$1" in
+start)
+
+echo "Adding routes: "
+start
+echo  "done"
+;;
+
+stop)
+
+echo "deleting routes: "
+stop
+echo "done"
+;;
+
+*)
+echo "Usage: vgw2public {start|stop}"
+;;
+
+esac
+exit 0

@@ -1,0 +1,17 @@
+cfgm_common
+vnc_api
+sandesh
+sandesh-common
+gevent==1.1a2
+geventhttpclient==1.0a
+pycassa>=1.7.2
+netaddr>=0.7.5
+bitarray>=0.8.0
+psutil>=0.6.0
+python-novaclient
+python-keystoneclient
+kombu
+netifaces
+bottle
+stevedore
+kazoo

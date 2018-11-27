@@ -1,0 +1,289 @@
+#!/bin/bash
+#
+# Limits the  inbound and outbound bandwidth of the tenant in cloud.
+# date: 2017-03-6
+# Author: caiyuexiang
+# org: CertusNet Inc.
+### BEGIN INIT INFO
+# Provides:
+# Default-Start: 3 4 5
+# Default-Stop:  0 1 2 6
+# Required-Start:
+### END INIT INFO
+#  original source :http://atmail.com/kb/2009/throttling-bandwidth/
+#  tc uses the following units when passed as a parameter.
+#  default unit is bit if you donot explicitly assign it.
+#  kbps: Kilobytes per second
+#  mbps: Megabytes per second
+#  kbit: Kilobits per second
+#  mbit: Megabits per second
+#  bps: Bytes per second
+#  kb or k: Kilobytes
+#  mb or m: Megabytes
+#  mbit: Megabits
+#  kbit: Kilobits
+#  To get the byte figure from bits, divide the number by 8 bit
+##
+#display shell cmd from script.
+set -x
+
+# Name of the traffic control command.
+TC="tc"
+
+#actual BW of the physics NIC $ODEV, need to ADJUST according to NICs.
+#gateway 1 REF
+REF_BW1="10000Mbit"
+#gateway 2 REF
+REF_BW2="1000Mbit"
+
+REF_BW=$REF_BW1
+
+#vmware_physical_interface ingress NIC
+IFB1="ifbvmware"
+IFB=$IFB1
+
+#WEIGHT
+IN_WEIGHT=0.1
+OUT_WEIGHT=0.1
+
+QOS_LOG_PATH="/var/log/qos"
+QOS_LOG_FILE="/var/log/qos/qos-vmware-intf.log"
+
+echo $1
+
+###import for passing parmeter var.
+if [ $1 = "OP_CODE=start" -o $1 = "OP_CODE=stop" -o $1 = "OP_CODE=change" -o $1 = "OP_CODE=init" -o $1 = "OP_CODE=destroy" -o $1 = "OP_CODE=show" ];then
+  for var in $@
+  do
+     eval "$var"
+  done
+else
+     eval "$1" 
+fi
+
+echo "======================================================================"
+echo $QOS_LOG_FILE
+
+# The network interface we're planning on limiting egress bandwidth.
+ODEV=$DEV
+#FILEDATE=$(date "+%Y-%m-%d")
+#QOS_LOG_FILE=$QOS_LOG_FILE$FILEDATE
+
+if [ ! -d "$QOS_LOG_PATH" ]; then
+     mkdir "$QOS_LOG_PATH"
+fi
+
+echo $(date "+%Y-%m-%d %H:%M:%S")" contrail-vcenter-qos OP_CODE $OP_CODE " >> $QOS_LOG_FILE
+
+if [ ${OP_CODE} = "start" ];then
+  if [ "$QOS_INBOUND" == "-1" ];then
+      QOS_INBOUND="10485760"  #10Gbit/1024
+  fi
+  if [ "$QOS_OUTBOUND" == "-1" ];then
+      QOS_OUTBOUND="10485760"  #10Gbit/1024
+  fi
+  #if in(out)bound is 0,reset it to 1
+  if [ "$QOS_INBOUND" == "0" ];then
+      QOS_INBOUND="10485760"  #10Gbit/1024
+  fi
+  if [ "$QOS_OUTBOUND" == "0" ];then
+      QOS_OUTBOUND="10485760"  #10Gbit/1024
+  fi
+
+  IN_WEIGHT_BW=$(echo "sclae=2;${IN_WEIGHT}*${QOS_INBOUND}"| bc)
+  OUT_WEIGHT_BW=$(echo "sclae=2;${OUT_WEIGHT}*${QOS_OUTBOUND}"| bc)
+  echo "inweight: "$IN_WEIGHT_BW
+  echo "outweight: "$OUT_WEIGHT_BW
+  echo "qos_inbound: "$QOS_INBOUND
+  echo "qos_outboud: "$QOS_OUTBOUND
+  echo $(date "+%Y-%m-%d %H:%M:%S")" Weight: in_weight $IN_WEIGHT out_weight $OUT_WEIGHT " >> $QOS_LOG_FILE
+  echo $(date "+%Y-%m-%d %H:%M:%S")" Raw : qos_inbound $QOS_INBOUND qos_outbound $QOS_OUTBOUND " >> $QOS_LOG_FILE
+fi
+
+
+###created ifbvgw for ingress traffic.
+
+create_ifbvmwareintf(){
+#echo "ifbvmwareintf start" 
+  if [ !  -e /sys/class/net/$IFB ];then  
+      ip link add name $IFB type ifb
+      ip link set dev $IFB up 
+  fi
+#echo "ifbvmwareintf end"
+}
+delete_ifbvmwareintf(){
+  if [ -e /sys/class/net/$IFB ];then
+      ip link del $IFB type ifb
+  fi
+}
+init() {
+ 
+  create_ifbvmwareintf
+  # base bandwidth setting
+  #egress bw control 
+  $TC qdisc add dev $ODEV root handle 1:0 cbq bandwidth $REF_BW cell 8 avpkt 1500 mpu 64
+  #ingress bw control
+  $TC qdisc add dev $ODEV handle ffff: ingress
+  $TC filter add dev $ODEV parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev $IFB
+  $TC qdisc add dev $IFB root handle 1:0 cbq bandwidth $REF_BW cell 8 avpkt 1500 mpu 64
+  echo $(date "+%Y-%m-%d %H:%M:%S")" contrail-vcenter-qos interface $ODEV and $IFB inited. " >> $QOS_LOG_FILE
+}
+
+destroy() {
+   $TC qdisc del dev $ODEV root handle 1:0 cbq bandwidth $REF_BW cell 8 avpkt 1500 mpu 64
+   #$TC filter del dev $ODEV parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev $IFB
+   $TC qdisc del dev $ODEV handle ffff: ingress
+   delete_ifbvmwareintf
+   echo $(date "+%Y-%m-%d %H:%M:%S")" contrail-vcenter-qos interface $ODEV and $IFB destroyed. " >> $QOS_LOG_FILE
+}
+
+start() {
+# We'll use Class Based Queueing (CBQ) to shape bandwidth.
+# For detailed configuration options, please consult Linux man
+# page.
+#$FIP_NO $ID  base bandwidth
+#egress bw control
+stop
+sleep 1
+
+OLDIFS=$IFS
+IFS=','
+for item in $NETWORK_CIDRS
+do   
+   $TC class add dev $ODEV parent 1:0 classid 1:$ID cbq bandwidth $REF_BW rate ${QOS_INBOUND}kbit avpkt 1500 prio 1 bounded allot 1514 weight ${OUT_WEIGHT_BW}kbit maxburst 21   
+   $TC qdisc add dev $ODEV parent 1:${ID} handle ${ID}: sfq
+   $TC filter add dev $ODEV protocol ip parent 1:0 prio 1 u32 match ip dst $item flowid 1:${ID}
+   echo $(date "+%Y-%m-%d %H:%M:%S")" Add interface $ODEV class $ID ip $item qos_inbound ${QOS_INBOUND} in_weight ${IN_WEIGHT_BW} out_weight ${OUT_WEIGHT_BW} ." >> $QOS_LOG_FILE
+   #ingress
+
+   $TC class add dev $IFB  parent 1:0 classid 1:$ID cbq bandwidth $REF_BW rate ${QOS_OUTBOUND}kbit avpkt 1500 prio 1 bounded allot 1514 weight ${IN_WEIGHT_BW}kbit maxburst 21
+   $TC qdisc add dev $IFB parent 1:${ID} handle ${ID}: sfq
+   $TC filter add dev $IFB protocol ip parent 1:0 prio 1 u32 match ip src $item flowid 1:${ID}
+   echo $(date "+%Y-%m-%d %H:%M:%S")" Add interface $IFB class $ID ip $item qos_outboud ${QOS_OUTBOUND} in_weight ${IN_WEIGHT_BW} out_weight ${OUT_WEIGHT_BW} ." >> $QOS_LOG_FILE
+done
+IFS=$OLDIFS
+}
+
+###clear all qdisc 
+stop() {
+# Stop the bandwidth shaping.
+
+OLDIFS=$IFS
+IFS=','
+for item in $NETWORK_CIDRS
+do
+   $TC filter show dev $ODEV > /var/qos-filter
+   #cat /var/qos-filter
+   OUT=$(cat /var/qos-filter | grep 1:${ID})
+   #echo $OUT
+   FILTER_ID=$(echo $OUT | awk -F ' ' '{print $10}')
+   echo $FILTER_ID   
+   $TC filter del dev $ODEV pref 1 handle $FILTER_ID u32 
+   $TC class del dev $ODEV parent 1:0 classid 1:$ID
+   
+   echo $(date "+%Y-%m-%d %H:%M:%S")" Del ip addr $item class $ID filter $FILTER_ID." >> $QOS_LOG_FILE   
+   #ingress
+   $TC filter show dev $IFB > /var/qos-filter
+   
+   OUT=$(cat /var/qos-filter | grep 1:${ID})
+   
+   FILTER_ID=$(echo $OUT | awk -F ' ' '{print $10}')
+   echo $FILTER_ID  
+   $TC filter del dev $IFB pref 1 handle $FILTER_ID u32
+   $TC class del dev $IFB  parent 1:0 classid 1:$ID
+
+done
+IFS=$OLDIFS
+}
+
+####this api is only used for bw changing.
+###by calling stop and start to implement it.
+change() {
+echo "test change"
+stop
+start
+}
+###only change the bw by using tc changing api
+change2() {
+echo "test change"
+
+}
+
+restart() {
+
+# Self-explanatory.
+stop
+sleep 1
+start
+}
+
+show() {
+# Display status of traffic control status.
+echo "enter show case:"
+$TC -s qdisc ls dev $ODEV
+$TC -s qdisc ls dev $IFB
+$TC -s class ls dev $ODEV
+$TC -s class ls dev $IFB
+$TC -s filter ls dev $ODEV
+$TC -s filter ls dev $IFB
+}
+###run from here.
+###################
+##
+
+case "$OP_CODE" in
+init)
+echo  "Qos-gw init:"
+init
+echo  "done"
+;;
+
+destroy)
+echo  "Qos-gw destroy:"
+destroy
+echo -n "done"
+;;
+
+start)
+
+echo "Starting bandwidth shaping: "
+start
+echo  "done"
+;;
+
+stop)
+
+echo "Stopping bandwidth shaping: "
+stop
+echo "done"
+;;
+
+change)
+
+echo "Resetting bandwidth shaping: "
+change
+echo "done"
+;;
+
+restart)
+
+echo "Restarting bandwidth shaping: "
+restart
+echo "done"
+;;
+
+show)
+
+echo "Bandwidth shaping status for $ODEV:"
+show
+echo  ""
+;;
+
+*)
+echo "Usage: qos-gw {init|destroy|start|stop|change|show}"
+;;
+
+esac
+###exit now.
+exit 0  
+

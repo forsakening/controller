@@ -1,0 +1,4 @@
+contrail-vrouter-api
+eventlet
+netaddr
+requests

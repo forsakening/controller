@@ -1,0 +1,168 @@
+{
+    "contrail-collector" : {
+        "source_directories" : [
+            "controller/src/analytics",
+            "controller/src/bfd",
+            "controller/src/database",
+            "controller/src/opserver",
+            "controller/src/query_engine",
+            "controller/src/zookeeper"
+        ],
+        "scons_test_targets" : [
+            "controller/src/analytics:test",
+            "controller/src/opserver:test",
+            "controller/src/bfd:test",
+            "controller/src/query_engine:test",
+            "controller/src/database/gendb:test",
+            "controller/src/database/cassandra/cql:test",
+            "controller/src/zookeeper:test"
+        ],
+        "misc_test_targets" : [ ]
+    },
+    "contrail-config" : {
+        "source_directories" : [
+            "controller/src/api-lib",
+            "controller/src/config",
+            "controller/src/schema"
+        ],
+        "scons_test_targets" : [
+            "controller/src/config/svc_monitor:test",
+            "controller/src/config/schema-transformer:test",
+            "controller/src/config/device-manager:test",
+            "controller/src/api-lib:test",
+            "controller/src/config/api-server:test",
+            "controller/src/config/vnc_openstack:test"
+        ],
+        "misc_test_targets" : [ ]
+    },
+    "contrail-control" : {
+        "source_directories" : [
+            "controller/src/bgp",
+            "controller/src/control-node",
+            "controller/src/dns",
+            "controller/src/ifmap",
+            "controller/src/xmpp",
+            "controller/src/config/config-client-mgr"
+        ],
+        "scons_test_targets" : [
+            "controller/src/bgp:test",
+            "controller/src/control-node:test",
+            "controller/src/dns:test",
+            "controller/src/ifmap:test",
+            "controller/src/xmpp:test",
+            "controller/src/config/config-client-mgr:test"
+        ],
+        "misc_test_targets" : [ ],
+        "environment" : [
+            {
+                "tuples" : [
+                    "NO_HEAPCHECK=TRUE"
+                ],
+                "tests" : [
+                    ".*/bgp/test/bgp_xmpp_inetvpn_test$",
+                    ".*/bgp/test/graceful_restart_test$"
+                ]
+            },
+            {
+                "tuples" : [
+                    "TASK_UTIL_RETRY_COUNT=6000",
+                    "TASK_UTIL_WAIT_TIME=10000",
+                    "WAIT_FOR_IDLE=60",
+                    "LOG_DISABLE=TRUE"
+                ],
+                "tests" : [
+                    ".*/bgp/l3vpn/test/inetvpn_peer_test$",
+                    ".*/bgp/test/bgp_authentication_test$",
+                    ".*/bgp/test/bgp_evpn_manager_test$",
+                    ".*/bgp/test/bgp_server_test$",
+                    ".*/bgp/test/bgp_stress_test$",
+                    ".*/bgp/test/bgp_show_neighbor_test$",
+                    ".*/bgp/test/bgp_show_evpn_table_test$",
+                    ".*/bgp/test/bgp_show_route_summary_test$",
+                    ".*/bgp/test/bgp_show_routing_instance_test$",
+                    ".*/bgp/test/bgp_show_rtarget_group_test$",
+                    ".*/bgp/test/bgp_xmpp_basic_test$",
+                    ".*/bgp/test/bgp_xmpp_evpn_mcast_test$",
+                    ".*/bgp/test/bgp_xmpp_inetvpn_test$",
+                    ".*/bgp/test/bgp_xmpp_inet6vpn_test$",
+                    ".*/bgp/test/bgp_xmpp_mcast_test$",
+                    ".*/bgp/test/bgp_xmpp_rtarget_test$",
+                    ".*/bgp/test/graceful_restart_test$",
+                    ".*/bgp/test/service_chain_test",
+                    ".*/bgp/test/svc_static_route_intergration_test",
+                    ".*/bgp/test/xmpp_ecmp_test$"
+                ]
+            }
+        ]
+    },
+    "contrail-vrouter" : {
+        "source_directories" : [
+            "controller/src/ksync",
+            "controller/src/vnsw",
+            "controller/src/xmpp",
+            "vrouter"
+        ],
+        "scons_test_targets" : [
+            "controller/src/agent:test",
+            "vrouter:test"
+        ],
+        "misc_test_targets" : [ ]
+    },
+    "contrail-nodemgr" : {
+        "source_directories" : [
+            "controller/src/nodemgr"
+        ],
+        "scons_test_targets" : [
+            "contrail-nodemgr:test"
+        ],
+        "misc_test_targets" : [ ]
+    },
+    "contrail-container" : {
+        "source_directories" : [
+            "controller/src/container"
+        ],
+        "scons_test_targets" : [
+            "controller/src/config/svc_monitor:test",
+            "controller/src/config/schema-transformer:test",
+            "controller/src/container/kube-manager:test",
+            "controller/src/container/mesos-manager:test"
+        ],
+        "misc_test_targets" : [ ]
+    },
+    "contrail-libs" : {
+        "source_directories" : [
+            "controller/src/base",
+            "controller/src/db",
+            "controller/src/discovery",
+            "controller/src/database",
+            "controller/src/zookeeper",
+            "controller/src/http",
+            "controller/src/io",
+            "controller/src/net",
+            "controller/src/route",
+            "controller/src/routing-policy",
+            "controller/src/sandesh",
+            "controller/src/schema",
+            "controller/src/xml",
+            "tools/generateds",
+            "tools/sandesh/compiler",
+            "tools/sandesh/library"
+        ],
+        "scons_test_targets" : [
+            "controller/src/base:test",
+            "controller/src/db:test",
+            "controller/src/database/gendb:test",
+            "controller/src/database/cassandra/cql:test",
+            "controller/src/zookeeper:test",
+            "controller/src/io:test",
+            "controller/src/net:test",
+            "controller/src/schema:test",
+            "sandesh:test"
+        ],
+        "misc_test_targets" : [
+            "contrail-collector",
+            "contrail-control",
+            "contrail-vrouter"
+         ]
+    }
+}

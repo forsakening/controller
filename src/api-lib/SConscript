@@ -1,0 +1,119 @@
+# -*- mode: python; -*-
+#
+# Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+#
+import os
+
+Import('BuildEnv')
+env = BuildEnv.Clone()
+
+cd_cmd = 'cd ' + Dir('.').path + ' && '
+
+autogen_infra_sources = [
+                 '#/tools/generateds/generateDS.py',
+                 '#/tools/generateds/TypeGenerator.py',
+                 '#/tools/generateds/ccmap.py',
+                 '#/tools/generateds/idl_parser.py',
+                 '#/tools/generateds/ifmap_global.py',
+                 '#/tools/generateds/ifmap_model.py',
+                 '#/tools/generateds/ifmap_frontend.py',
+                ]
+
+autogen_sources = [
+                 '#controller/src/schema/all_cfg.xsd',
+                 '#controller/src/schema/vnc_cfg.xsd',
+                 '#controller/src/schema/bgp_schema.xsd',
+                 '#controller/src/schema/ietf-l3vpn-schema.xsd',
+                 '#controller/src/schema/smi-base.xsd',
+                ]
+
+autogen_script = File('#tools/generateds/generateDS.py').path
+autogen_cmd = '%s -f -o %s -g ifmap-frontend' % (autogen_script, Dir('vnc_api/gen/resource').path)
+
+generated_files = [ 
+                  'vnc_api/gen/__init__.py',
+                  'vnc_api/gen/resource_xsd.py',
+                  'vnc_api/gen/resource_common.py',
+                  'vnc_api/gen/resource_client.py',
+                  'vnc_api/gen/vnc_api_client_gen.py',
+                ]
+env.Append(ENV = {'HEAT_BUILDTOP' : Dir(env['TOP']).abspath})
+
+generated_rule = env.Command(generated_files,
+                             '#controller/src/schema/all_cfg.xsd',
+                             autogen_cmd + ' $SOURCE')
+
+setup_sources = [
+           'setup.py',
+           '.testr.conf',
+           '.coveragerc',
+           'run_tests.sh',
+           'tools',
+           'tests',
+           'requirements.txt',
+           'test-requirements.txt',
+          ]
+
+setup_sources_rules = []
+for file in setup_sources:
+    setup_sources_rules.append(env.Install("", "#/controller/src/api-lib/" + file))
+
+local_sources = [
+           '__init__.py',
+           'vnc_api.py',
+           'vnc_api_lib.ini',
+          ]
+
+local_sources_rules = []
+for file in local_sources:
+    local_sources_rules.append(env.Install("vnc_api", "#/controller/src/api-lib/" + file))
+
+generateds_rule = env.Install("vnc_api/gen", "#/controller/src/config/common/generatedssuper.py")
+cfixture_rule = env.Install("vnc_api/gen", "#/controller/src/config/common/cfixture.py")
+
+sdist_depends = [generated_rule, generateds_rule, cfixture_rule]
+sdist_depends.extend(setup_sources_rules)
+sdist_depends.extend(local_sources_rules)
+sdist_gen = env.Command('dist/vnc_api-0.1dev.tar.gz',
+                        'setup.py', cd_cmd + 'python setup.py sdist')
+
+env.Default(sdist_gen)
+
+# generated files depend on autogeneration infra parts
+env.Depends(generated_rule, [autogen_infra_sources, autogen_sources, generateds_rule])
+env.Depends(local_sources_rules, autogen_infra_sources)
+
+# install everything before building distribution
+env.Depends(sdist_gen, sdist_depends)
+
+if 'install' in BUILD_TARGETS:
+   install_cmd = env.Command(None, 'setup.py',
+                             cd_cmd + 'python setup.py install %s' %
+                             env['PYTHON_INSTALL_OPT'])
+   env.Depends(install_cmd, sdist_depends)
+   env.Alias('install', install_cmd)
+
+env.Alias('install', env.Install(env['INSTALL_CONF'], 'vnc_api_lib.ini'))
+
+buildspace_link = os.environ.get('CONTRAIL_REPO')
+if buildspace_link:
+    # in CI environment shebang limit exceeds for python
+    # in easy_install/pip, reach to it via symlink
+    top_path = buildspace_link + '/' + Dir('.').path
+    top_dir = Dir(top_path)
+else:
+    top_dir = Dir('.')
+
+cov_cmd = env.Command('coveragetest.log', sdist_gen,
+                      'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests --coverage 2>&1 | tee coveragetest.log"')
+
+test_cmd = env.Command('test.log', sdist_gen,
+           'bash -c "set -o pipefail && cd ' + Dir(top_dir).path + ' && python setup.py run_tests 2>&1 | tee test.log"')
+
+test_depends = ['/config/common/dist/cfgm_common-0.1dev.tar.gz']
+env.Depends(test_cmd, [env['TOP']+x for x in test_depends])
+env.Depends(cov_cmd, [env['TOP']+x for x in test_depends])
+
+env.Alias('test', test_cmd)
+env.Alias('controller/src/api-lib:test', test_cmd)
+env.Alias('controller/src/api-lib:coverage', cov_cmd)

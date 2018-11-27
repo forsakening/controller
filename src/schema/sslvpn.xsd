@@ -1,0 +1,38 @@
+<!--
+ Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.contrailsystems.com/sslvpn.xsd">
+
+<xsd:element name="sslvpn-connection" type="ifmap:IdentityType"/>
+<xsd:element name="sslvpn-connection-properties" type="SslVpnConnectionType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('sslvpn-connection-properties', 'sslvpn-connection') -->
+
+<xsd:element name="project-sslvpn-connection"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-sslvpn-connection',
+          'project', 'sslvpn-connection', ['has']) -->
+
+<xsd:complexType name='SslVpnConnectionType'>
+    <xsd:sequence>
+        <xsd:element name='status' type='xsd:string'/>
+        <xsd:element name='admin_state_up' type='xsd:boolean' default='true'/>
+        <xsd:element name='client_address_pool_cidr' type='xsd:string'/>
+        <xsd:element name='server_address_pool_cidr' type='xsd:string'/>
+        <xsd:element name='port_no' type='xsd:integer'/>
+    </xsd:sequence>
+</xsd:complexType>
+
+<xsd:element name="sslvpn-connection-vpnservice"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('sslvpn-connection-vpnservice',
+          'sslvpn-connection', 'vpnservice', ['ref'])    -->
+
+<xsd:element name="sslvpn-connection-vpn-credential"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Link('sslvpn-connection-vpn-credential',
+          'sslvpn-connection', 'vpn-credential', ['ref'])    -->
+
+</xsd:schema>

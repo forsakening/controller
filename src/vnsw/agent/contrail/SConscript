@@ -1,0 +1,162 @@
+#
+# Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+#
+
+import sys
+import re
+import time
+import subprocess
+
+Import('AgentEnv')
+env = AgentEnv.Clone()
+
+cflags = env['CCFLAGS']
+cflags.append('-Wno-return-type')
+cflags.append('-fexceptions')
+cflags.append('-Wno-unused-variable')
+
+
+##########################################################################
+# Rules to generate buildinfo.cc
+##########################################################################
+
+# Dependencies on external libraries first
+buildinfo_dep_libs = [
+    '#build/lib/libhttp.a',
+    '#build/lib/libhttp_parser.a',
+    '#build/lib/libpugixml.a',
+    '#build/lib/libsandesh.a',
+    '#build/lib/libsandeshflow.a',
+    '#build/lib/libsandeshvns.a'
+]
+
+def MapBuildCmnLib(list):
+    return map(lambda x: File('../../../' + x).abspath, list)
+
+# Common contrail libraries
+buildinfo_dep_libs += MapBuildCmnLib([
+    'base/libbase.a',
+    'base/libcpuinfo.a',
+    'db/libdb.a',
+    'dns/bind/libbind_interface.a',
+    'ifmap/libifmap_agent.a',
+    'ifmap/libifmap_common.a',
+    'io/libio.a',
+    'ksync/libksync.a',
+    'net/libnet.a',
+    'route/libroute.a',
+    'schema/libbgp_schema.a',
+    'schema/libifmap_vnc.a',
+    'ifmap/client/libifmapio.a',
+    'schema/libxmpp_unicast.a',
+    'schema/libxmpp_multicast.a',
+    'vrouter/utils/libvrutil.a',
+    'xml/libxml.a',
+    'xmpp/libxmpp.a'
+     ])
+
+def MapBuildAgentLib(list):
+    return map(lambda x: File('../' + x).abspath, list)
+
+# agent libraries
+buildinfo_dep_libs += MapBuildAgentLib([
+    'cfg/libcfg.a',
+    'cmn/libvnswcmn.a',
+    'controller/libvnswctrl.a',
+    'filter/libfilter.a',
+    'kstate/libkstate.a',
+    'vrouter/ksync/libvnswksync.a',
+    'port_ipc/libport_ipc.a',
+    'oper/libvnswoperdb.a',
+    'pkt/libpkt.a', 'diag/libdiag.a',
+    'services/libagent_services.a', 'uve/libuve.a',
+    'uve/libstatsuve.a', 'vrouter/flow_stats/libflowstats.a',
+    'vrouter/stats_collector/libstatscollector.a'
+])
+
+env.GenerateBuildInfoCode(
+    target = ['buildinfo.h', 'buildinfo.cc'],
+    source = buildinfo_dep_libs + ['main.cc'],
+    path=str(Dir('.').abspath))
+env.Depends('main.o', 'buildinfo.cc')
+
+# Add contrail-vrouter-agent specific libraries
+env.Prepend(LIBS = AgentEnv['CONTRAIL_LIBS'])
+
+# Whole-arhive flag causes the library to be included in the resulting output
+# even though there may not be any calls requiring its presence. We need this
+# for kstate library so that the HTML file for kstate  is listed in agent
+# introspect page
+env.Prepend(LINKFLAGS = ['-Wl,--whole-archive', '-rdynamic', '-lkstate', '-ldiag',
+                         '-Wl,--no-whole-archive'])
+
+#Add -Wno-return-type to ignore errors from thrift generated code in
+#InstanceService.h
+if sys.platform.startswith('freebsd'):
+    platform_dependent = 'freebsd/pkt0_interface.cc'
+elif sys.platform.startswith('linux'):
+    platform_dependent = 'linux/pkt0_interface.cc'
+
+
+contrail_vrouter_agent = env.Program(target = 'contrail-vrouter-agent',
+                     source = ['buildinfo.cc',
+                               'contrail_agent_init.cc',
+                               'main.cc',
+                               'pkt0_interface_base.cc',
+                                platform_dependent])
+
+env.Alias('contrail-vrouter-agent', contrail_vrouter_agent)
+env.Default(contrail_vrouter_agent)
+
+utils_scripts = [
+  'agent_dissector.lua',
+  'mpls_dissector.lua',]
+
+# Documentation
+doc_files = []
+doc_files += env['AGENT_COMMON_DOC_FILES']
+doc_files += env['AGENT_UVE_DOC_FILES']
+doc_files += env['AGENT_KSYNC_DOC_FILES']
+doc_files += env['AGENT_FLOW_DOC_FILES']
+
+# Please update sandesh/common/vns.sandesh on process name change
+env.Alias('install', env.Install(env['INSTALL_BIN'], contrail_vrouter_agent))
+env.Alias('install', env.Install(env['INSTALL_BIN'], 'contrail-vrouter-agent-health-check.py'))
+for utils in utils_scripts:
+  env.Alias('install', env.Install(env['INSTALL_EXAMPLE'], utils))
+env.Alias('install', env.Install(env['INSTALL_CONF'],
+          '../contrail-vrouter-agent.conf'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_CONF'] + 
+        '/supervisord_vrouter_files/' + 'contrail-vrouter-agent.ini',
+        '../contrail-vrouter-agent.ini'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_BIN'] +
+        '/mod_qos',
+        '../utils/mod_qos'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_BIN'] +
+        '/ifb-check.sh',
+        '../utils/ifb-check.sh'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_BIN'] +
+        '/vgw2public',
+        '../utils/vgw2public'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_BIN'] +
+        '/contrail-vcenter-qos',
+        '../utils/contrail-vcenter-qos'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_INITD'] + '/contrail-vrouter-agent',
+        '../contrail-vrouter.initd.supervisord'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_SYSTEMD'] + '/contrail-vrouter-agent.service',
+        '../systemd/contrail-vrouter-agent.service'))
+env.Alias('install',
+        env.InstallAs(env['INSTALL_SYSTEMD'] + '/contrail-vrouter-nodemgr.service',
+        '../systemd/contrail-vrouter-nodemgr.service'))
+env.Alias('install', env.Install(env['INSTALL_CONF'], 
+    '../supervisord_vrouter.conf'))
+env.Alias('install', env.Install(
+    env['INSTALL_MESSAGE_DOC'] + '/contrail-vrouter-agent/',
+    doc_files))

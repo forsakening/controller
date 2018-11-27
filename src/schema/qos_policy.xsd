@@ -1,0 +1,46 @@
+<!--
+ Copyright © 2017 CertusNet, Inc. and others.  All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.contrailsystems.com/qos_policy.xsd">
+
+<xsd:element name="qos-policy" type="ifmap:IdentityType"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('is-shared', 'qos-policy') -->
+<xsd:element name="qos-policy-qos-bandwidth-rule-entries" type="QosBandwidthRuleEntriesType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('qos-policy-qos-bandwidth-rule-entries', 'qos-policy') -->
+<xsd:element name="qos-policy-qos-dscpmarking-rule-entry" type="QosDscpMarkingRuleEntryType" />
+<!--#IFMAP-SEMANTICS-IDL
+     Property('qos-policy-qos-dscpmarking-rule-entry', 'qos-policy') -->
+<xsd:element name="project-qos-policy" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-qos-policy',
+          'project', 'qos-policy', ['has']) -->
+<xsd:complexType name="QosBandwidthRuleEntriesType">
+    <xsd:all>
+        <xsd:element name="bandwidth-limit-rule" type="QosBandwidthRuleType" maxOccurs="unbounded"/>
+    </xsd:all>
+</xsd:complexType>
+<xsd:complexType name="QosBandwidthRuleType">
+    <xsd:all>
+        <xsd:element name="rule-uuid"  type="xsd:string"/>
+        <xsd:element name="max-kbps" type="xsd:integer" />
+        <xsd:element name="max-burst-kbps" type="xsd:integer" />
+        <xsd:element name="direction" type="QosBandwidthRuleDirectionType" />
+    </xsd:all>
+</xsd:complexType>
+<xsd:simpleType name="QosBandwidthRuleDirectionType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ingress" />
+        <xsd:enumeration value="egress" />
+    </xsd:restriction>
+</xsd:simpleType>
+<xsd:complexType name="QosDscpMarkingRuleEntryType">
+    <xsd:all>
+        <xsd:element name="rule-uuid" type="xsd:string"/>
+        <xsd:element name="dscp-mark" type="xsd:integer"/>
+    </xsd:all>
+</xsd:complexType>
+</xsd:schema>

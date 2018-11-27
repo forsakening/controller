@@ -1,0 +1,27 @@
+<!--
+ Copyright (c) 2013 Juniper Networks, Inc. All rights reserved.
+ -->
+<xsd:schema
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsd:targetNamespace="http://www.contrailsystems.com/trunk.xsd">
+
+<xsd:element name="trunk" type="ifmap:IdentityType" />
+<xsd:element name="project-trunk" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('project-trunk',
+          'project', 'trunk', ['has']) -->
+<xsd:element name="trunk-port" />
+<!--#IFMAP-SEMANTICS-IDL
+     Link('trunk-port',
+          'trunk', 'virtual-machine-interface', ['ref']) -->
+<xsd:element name="trunk-sub-ports" type="SubPorts"/>
+<!--#IFMAP-SEMANTICS-IDL
+     Property('trunk-sub-ports', 'trunk') -->
+
+<xsd:complexType name="SubPorts">
+    <xsd:all>
+        <xsd:element name="sub-port" type="xsd:string" maxOccurs="unbounded" />
+    </xsd:all>
+</xsd:complexType>
+
+</xsd:schema>

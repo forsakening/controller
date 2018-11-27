@@ -1,0 +1,34 @@
+# -*- mode: python; -*-
+import os
+vpath = '#/third_party/SimpleAmqpClient'
+
+env = DefaultEnvironment()
+SimpleAmqpClient_path = '#/third_party/SimpleAmqpClient'
+
+def Symlink(target, source):
+    parent = os.path.dirname(target[0].abspath)
+    if not os.path.exists(parent):
+        os.makedirs(parent)
+
+    if not os.path.exists(target[0].abspath):
+        os.symlink(source[0].abspath, target[0].abspath)
+
+cmd = ('(cd ' + Dir('.').abspath + ';' +
+         'cmake -DENABLE_SSL_SUPPORT=ON' +
+         ' -DRabbitmqc_INCLUDE_DIR=' + Dir('#/build/include').abspath +
+         ' -DRabbitmqc_LIBRARY=' + Dir('#/build/lib').abspath + '/librabbitmq.a' +
+         ' -DBUILD_SHARED_LIBS=OFF' +
+         ' -DCMAKE_INSTALL_PREFIX=' + Dir('#build').abspath +  ' ' + Dir(vpath).abspath + ';' +
+         'cmake --build . --target install)')
+
+products = [str(File('#build/lib/libSimpleAmqpClient.a'))]
+
+libSimpleAmqpClient = env.Command('Makefile', str(Dir(vpath)), cmd)
+
+env.SideEffect(products, libSimpleAmqpClient)
+
+env.Requires(libSimpleAmqpClient, '#/build/include/boost')
+env.Requires(libSimpleAmqpClient, '#/build/lib/librabbitmq.a')
+
+Symlink([Dir('#/build/include/SimpleAmqpClient')],
+        [Dir(SimpleAmqpClient_path + '/src/SimpleAmqpClient')])
