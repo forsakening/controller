@@ -190,6 +190,13 @@ void VmInterfaceConfigData::CopyVhostData(const Agent *agent) {
                                     false, false, false, Ip4Address(0)));
     }
 
+    if (agent->params()->vhost_addr_v6() != Ip6Address()) {
+        ip6_addr_ = agent->v6router_id();
+        instance_ipv6_list_.list_.insert(
+            VmInterface::InstanceIp(agent->v6router_id(), 128, false, true,
+                                    false, false, false, Ip6Address()));
+    }
+
     boost::system::error_code ec;
     IpAddress mc_addr =
         Ip4Address::from_string(IPV4_MULTICAST_BASE_ADDRESS, ec);

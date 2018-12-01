@@ -974,7 +974,7 @@ void AgentXmppChannel::AddRemoteRoute(string vrf_name, IpAddress prefix_addr,
     }
     CONTROLLER_INFO_TRACE(RouteImport, GetBgpPeerName(), vrf_name,
                      prefix_addr.to_string(), prefix_len,
-                     addr.to_v4().to_string(), label, vn_string);
+                     addr.to_string(), label, vn_string);
     LOG(DEBUG,"AddRemoteRoute encap "<<encap<<" "<<label<<" next-hop "<<addr.to_string()<<" dst "<<prefix_addr.to_string()<<" "<<endl);
     if (item->entry.next_hops.next_hop[0].label ==
             MplsTable::kInvalidExportLabel &&

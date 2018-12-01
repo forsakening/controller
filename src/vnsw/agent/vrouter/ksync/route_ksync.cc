@@ -315,6 +315,7 @@ bool RouteKSyncEntry::BuildArpFlags(const DBEntry *e, const AgentPath *path,
             // Non local-route. Set flags based on the route
             proxy_arp = rt->proxy_arp();
             flood = rt->ipam_host_route();
+            //flood = rt->ipam_subnet_route();
         }
         break;
     }
@@ -1004,8 +1005,7 @@ bool VrfKSyncObject::RouteNeedsMacBinding(const InetUnicastRouteEntry *rt) {
 }
 
 bool VrfKSyncObject::RouteNeedsMacBindingL3Vxlan(const InetUnicastRouteEntry *rt) {
-    if (!rt->addr().is_v4())
-        return false;
+
     //Check if VN is enabled for bridging, if not then skip mac binding.
      VnEntry *vn= rt->vrf()->vn();
      if (vn == NULL || (vn->bridging() == false))
@@ -1016,8 +1016,10 @@ bool VrfKSyncObject::RouteNeedsMacBindingL3Vxlan(const InetUnicastRouteEntry *rt
         return false;
      if (nh->GetType() != NextHop::TUNNEL)
          return false;
-     if (IsGatewayOrServiceInterface(nh) == true)
-         return false;
+     
+     //if (IsGatewayOrServiceInterface(nh) == true)
+     //    return false;
+     
      return true;
 }
 
@@ -1069,7 +1071,13 @@ void VrfKSyncObject::NotifyL3VxlanRoute(VrfEntry *vrf, VrfState *state,
             return;
         }
     }
-    table = vrf->GetInet4UnicastRouteTable();
+
+    if (ip.is_v4()) {
+        table = vrf->GetInet4UnicastRouteTable();
+    }else {
+        table = vrf->GetInet6UnicastRouteTable();
+    }
+    
     rt = table->FindNetRoute(prefix_addr, plen);
     if (rt == NULL || rt->IsDeleted()) {
         LOG(DEBUG, vrf->ToString()<<" NotifyL3VxlanRoute Not find route"<<endl);
@@ -1086,7 +1094,12 @@ void VrfKSyncObject::NotifyL3VxlanRoute(VrfEntry *vrf, VrfState *state,
             LOG(DEBUG,endl);
         }
     }
-    state->inet4_uc_route_table_->Notify(rt->get_table_partition(), rt);
+
+    if (rt->GetTableType() == Agent::INET4_UNICAST) {
+        state->inet4_uc_route_table_->Notify(rt->get_table_partition(), rt);
+    } else if (rt->GetTableType() == Agent::INET6_UNICAST) {
+        state->inet6_uc_route_table_->Notify(rt->get_table_partition(), rt);
+    }
 }
 
 void VrfKSyncObject::AddIpMacBinding(VrfEntry *vrf, const IpAddress &ip,
@@ -1098,6 +1111,8 @@ void VrfKSyncObject::AddIpMacBinding(VrfEntry *vrf, const IpAddress &ip,
         (vrf->GetState(vrf->get_table(), vrf_listener_id_));
     if (state == NULL)
         return;
+
+    LOG(DEBUG,"zx-test,AddIpMacBinding, ip: "<< ip.to_string() << "mac :" << mac.ToString() << endl);
 
     IpToMacBinding::iterator it =
         state->ip_mac_binding_.find(std::make_pair(ip, ethernet_tag));

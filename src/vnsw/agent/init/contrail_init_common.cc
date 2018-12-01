@@ -187,11 +187,13 @@ void ContrailInitCommon::CreateInterfaces() {
     }
 
     type = ComputeEncapType(agent_param()->eth_port_encap_type());
+    //zx-ipv6
     PhysicalInterface::Create(table, agent_param()->eth_port(),
                               agent()->fabric_vrf_name(),
                               PhysicalInterface::FABRIC, type,
                               agent_param()->eth_port_no_arp(), nil_uuid(),
-                              agent_param()->vhost_addr(),
+                              //agent_param()->vhost_addr(),
+                              agent_param()->vhost_addr_v6(),
                               physical_transport);
     PhysicalInterfaceKey physical_key(agent()->fabric_interface_name());
     assert(table->FindActiveEntry(&physical_key));
@@ -223,13 +225,20 @@ void ContrailInitCommon::CreateInterfaces() {
                                   agent()->fabric_vrf_name(),
                                   PhysicalInterface::VMWARE,
                                   PhysicalInterface::ETHERNET, false,
-                                  nil_uuid(), Ip4Address(0),
+                                  //nil_uuid(), Ip4Address(0),
+                                  //zx-ipv6
+                                  nil_uuid(), Ip6Address(),
                                   physical_transport);
     }
 
     agent()->set_router_id(agent_param()->vhost_addr());
     agent()->set_vhost_prefix_len(agent_param()->vhost_plen());
     agent()->set_vhost_default_gateway(agent_param()->vhost_gw());
+
+    //v6
+    agent()->set_v6router_id(agent_param()->vhost_addr_v6());
+    agent()->set_vhost_v6prefix_len(agent_param()->vhost_plen_v6());
+    agent()->set_vhost_default_v6gateway(agent_param()->vhost_gw_v6());
 
     if (agent()->pkt()) {
         agent()->pkt()->CreateInterfaces();

@@ -231,8 +231,15 @@ void KSyncMemory::GetTableSize() {
     nl_update_nlh(cl);
 
     tcp::socket socket(*(ksync_->agent()->event_manager()->io_service()));
-    tcp::endpoint endpoint(ksync_->agent()->vrouter_server_ip(),
-                           ksync_->agent()->vrouter_server_port());
+    
+    boost::asio::ip::address ip;
+    ip = ksync_->agent()->vrouter_server_ip();
+    if (ip.to_string() == "0.0.0.0")
+    {
+        ip = ksync_->agent()->vrouter_server_ipv6();
+    }
+        
+    tcp::endpoint endpoint(ip, ksync_->agent()->vrouter_server_port());
     boost::system::error_code ec;
     socket.connect(endpoint, ec);
     if (ec) {

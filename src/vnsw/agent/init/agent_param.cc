@@ -49,6 +49,17 @@ bool AgentParam::GetIpAddress(const string &str, Ip4Address *addr) {
     return true;
 }
 
+bool AgentParam::GetIpAddress6(const string &str, Ip6Address *addr) {
+    boost::system::error_code ec;
+    Ip6Address tmp = Ip6Address::from_string(str, ec);
+    if (ec.value() != 0) {
+        return false;
+    }
+    *addr = tmp;
+    return true;
+}
+
+
 bool AgentParam::ParseIp(const string &key, Ip4Address *server) {
     optional<string> opt_str;
     if (opt_str = tree_.get_optional<string>(key)) {
@@ -65,6 +76,24 @@ bool AgentParam::ParseIp(const string &key, Ip4Address *server) {
     }
     return true;
 }
+
+bool AgentParam::ParseIp6(const string &key, Ip6Address *server) {
+    optional<string> opt_str;
+    if (opt_str = tree_.get_optional<string>(key)) {
+        Ip6Address addr;
+        if (GetIpAddress6(opt_str.get(), &addr) == false) {
+            LOG(ERROR, "Error in config file <" << config_file_
+                    << ">. Error parsing IP address from <"
+                    << opt_str.get() << ">");
+            return false;
+
+        } else {
+            *server = addr;
+        }
+    }
+    return true;
+}
+
 
 bool AgentParam::ParseServerList(const string &key, Ip4Address *server1,
                                  Ip4Address *server2) {
@@ -95,6 +124,36 @@ bool AgentParam::ParseServerList(const string &key, Ip4Address *server1,
     return true;
 }
 
+bool AgentParam::ParseServerList6(const string &key, Ip6Address *server1,
+                                 Ip6Address *server2) {
+    optional<string> opt_str;
+    Ip6Address addr;
+    vector<string> tokens;
+    if (opt_str = tree_.get_optional<string>(key)) {
+        boost::split(tokens, opt_str.get(), boost::is_any_of(" \t"));
+        if (tokens.size() > 2) {
+            LOG(ERROR, "Error in config file <" << config_file_
+                    << ">. Cannot have more than 2 servers <"
+                    << opt_str.get() << ">");
+            return false;
+        }
+        vector<string>::iterator it = tokens.begin();
+        if (it != tokens.end()) {
+            if (!GetIpAddress6(*it, server1)) {
+                return false;
+            }
+            ++it;
+            if (it != tokens.end()) {
+                if (!GetIpAddress6(*it, server2)) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
 // Parse address string in the form <ip>:<port>
 bool AgentParam::ParseAddress(const std::string &addr_string,
                               Ip4Address *server, uint16_t *port) {
@@ -118,6 +177,35 @@ bool AgentParam::ParseAddress(const std::string &addr_string,
 
     return true;
 }
+
+// Parse address string in the form <ip>:<port>
+bool AgentParam::ParseAddress6(const std::string &addr_string,
+                              Ip6Address *server, uint16_t *port) {
+    vector<string> tokens;
+    std::size_t _last = addr_string.find_last_of(":");
+    if (string::npos == _last)
+    {
+        cout << "Error in config file <" << config_file_
+             << ">. Improper server address <" << addr_string << ">\n";
+        return false;
+    }
+
+    tokens.push_back(addr_string.substr(0,_last));
+    tokens.push_back(addr_string.substr(_last+1));
+    vector<string>::iterator it = tokens.begin();
+    if (!GetIpAddress6(*it, server)) {
+        cout << "Error in config file <" << config_file_
+             << ">. Improper server address <" << addr_string << ">\n";
+        return false;
+    }
+    ++it;
+    if (it != tokens.end()) {
+        stringToInteger(*it, *port);
+    }
+
+    return true;
+}
+
 
 // Parse list of servers in the <ip1>:<port1> <ip2>:<port2> format
 bool AgentParam::ParseServerList(const std::string &key,
@@ -146,6 +234,32 @@ bool AgentParam::ParseServerList(const std::string &key,
     return true;
 }
 
+bool AgentParam::ParseServerList6(const std::string &key,
+                                 Ip6Address *server1, uint16_t *port1,
+                                 Ip6Address *server2, uint16_t *port2) {
+    optional<string> opt_str;
+    if (opt_str = tree_.get_optional<string>(key)) {
+        vector<string> tokens;
+        boost::split(tokens, opt_str.get(), boost::is_any_of(" \t"));
+        if (tokens.size() > 2) {
+            cout << "Error in config file <" << config_file_
+                 << ">. Cannot have more than 2 DNS servers <"
+                 << opt_str.get() << ">\n";
+            return false;
+        }
+        vector<string>::iterator it = tokens.begin();
+        if (it != tokens.end()) {
+            if (!ParseAddress6(*it, server1, port1))
+                return false;
+            ++it;
+            if (it != tokens.end()) {
+                return ParseAddress6(*it, server2, port2);
+            }
+        }
+    }
+    return true;
+}
+
 void AgentParam::ParseIpArgument
     (const boost::program_options::variables_map &var_map, Ip4Address &server,
      const string &key) {
@@ -157,6 +271,19 @@ void AgentParam::ParseIpArgument
         }
     }
 }
+
+void AgentParam::ParseIpArgument6
+    (const boost::program_options::variables_map &var_map, Ip6Address &server,
+     const string &key) {
+
+    if (var_map.count(key)) {
+        Ip6Address addr;
+        if (GetIpAddress6(var_map[key].as<string>(), &addr)) {
+            server = addr;
+        }
+    }
+}
+
 
 bool AgentParam::ParseServerListArguments
     (const boost::program_options::variables_map &var_map, Ip4Address &server1,
@@ -189,9 +316,9 @@ bool AgentParam::ParseServerListArguments
     return true;
 }
 
-bool AgentParam::ParseServerListArguments
-    (const boost::program_options::variables_map &var_map, Ip4Address *server1,
-     uint16_t *port1, Ip4Address *server2, uint16_t *port2,
+bool AgentParam::ParseServerListArguments6
+    (const boost::program_options::variables_map &var_map, Ip6Address *server1,
+     uint16_t *port1, Ip6Address *server2, uint16_t *port2,
      const std::string &key) {
 
     if (var_map.count(key)) {
@@ -206,11 +333,11 @@ bool AgentParam::ParseServerListArguments
         }
         vector<string>::iterator it = value.begin();
         if (it != value.end()) {
-            if (!ParseAddress(*it, server1, port1))
+            if (!ParseAddress6(*it, server1, port1))
                 return false;
             ++it;
             if (it != value.end()) {
-                return ParseAddress(*it, server2, port2);
+                return ParseAddress6(*it, server2, port2);
             }
         }
     }
@@ -414,6 +541,17 @@ void AgentParam::ParseVirtualHostArguments
         }
     }
     ParseIpArgument(var_map, vhost_.gw_, "VIRTUAL-HOST-INTERFACE.gateway");
+
+    //v6
+    string ipv6;
+    if (GetOptValue<string>(var_map, ipv6, "VIRTUAL-HOST-INTERFACE.ipv6")) {
+        ec = Inet6PrefixParse(ipv6, &vhost_.v6addr_, &vhost_.v6plen_);
+        if (ec != 0 || vhost_.v6plen_ >= 128) {
+            cout << "Error parsing vhost ipv6 argument from <" << ipv6 << ">\n";
+        }
+    }
+    ParseIpArgument6(var_map, vhost_.v6gw_, "VIRTUAL-HOST-INTERFACE.gatewayv6");
+    
     GetOptValue<string>(var_map, eth_port_,
                         "VIRTUAL-HOST-INTERFACE.physical_interface");
 }
@@ -1086,6 +1224,9 @@ void AgentParam::LogConfig() const {
     LOG(DEBUG, "vhost IP Address            : " << vhost_.addr_.to_string()
         << "/" << vhost_.plen_);
     LOG(DEBUG, "vhost gateway               : " << vhost_.gw_.to_string());
+    LOG(DEBUG, "vhost IPv6 Address            : " << vhost_.v6addr_.to_string()
+        << "/" << vhost_.v6plen_);
+    LOG(DEBUG, "vhost gatewayv6               : " << vhost_.v6gw_.to_string());
     LOG(DEBUG, "Ethernet port               : " << eth_port_);
 
     std::string concat_servers;
@@ -1608,6 +1749,10 @@ AgentParam::AgentParam(bool enable_flow_options,
              "IP address and prefix in ip/prefix_len format")
             ("VIRTUAL-HOST-INTERFACE.gateway", opt::value<string>(),
              "Gateway IP address for virtual host")
+             ("VIRTUAL-HOST-INTERFACE.ipv6", opt::value<string>(),
+             "IPv6 address and prefix in ipv6/prefix_len format")
+            ("VIRTUAL-HOST-INTERFACE.gatewayv6", opt::value<string>(),
+             "Gateway IPv6 address for virtual host")
             ("VIRTUAL-HOST-INTERFACE.physical_interface", opt::value<string>(),
              "Physical interface name to which virtual host interface maps to")
             ("VIRTUAL-HOST-INTERFACE.compute_node_address",

@@ -93,8 +93,11 @@ void PhysicalInterface::PostAdd() {
     InterfaceTable *table = static_cast<InterfaceTable *>(get_table());
     Agent *agent = table->agent();
 
+    //zx-ipv6
+    //InterfaceNHKey key(new PhysicalInterfaceKey(name_), false,
+    //        InterfaceNHFlags::INET4, mac_);
     InterfaceNHKey key(new PhysicalInterfaceKey(name_), false,
-            InterfaceNHFlags::INET4, mac_);
+            InterfaceNHFlags::INET6, mac_);
     flow_key_nh_ = static_cast<InterfaceNH *>
         (agent->nexthop_table()->FindActiveEntry(&key));
     assert(flow_key_nh_);
@@ -188,6 +191,21 @@ PhysicalInterfaceData::PhysicalInterfaceData(Agent *agent, IFMapNode *node,
                                              const uuid &device_uuid,
                                              const string &display_name,
                                              const Ip4Address &ip,
+                                             Interface::Transport transport) :
+    InterfaceData(agent, node, transport), subtype_(subtype), encap_type_(encap),
+    no_arp_(no_arp), device_uuid_(device_uuid), display_name_(display_name),
+    ip_(ip) {
+    EthInit(vrf_name);
+}
+
+    PhysicalInterfaceData::PhysicalInterfaceData(Agent *agent, IFMapNode *node,
+                                             const string &vrf_name,
+                                             PhysicalInterface::SubType subtype,
+                                             PhysicalInterface::EncapType encap,
+                                             bool no_arp,
+                                             const uuid &device_uuid,
+                                             const string &display_name,
+                                             const Ip6Address &ip,
                                              Interface::Transport transport) :
     InterfaceData(agent, node, transport), subtype_(subtype), encap_type_(encap),
     no_arp_(no_arp), device_uuid_(device_uuid), display_name_(display_name),
@@ -320,6 +338,21 @@ void PhysicalInterface::Create(InterfaceTable *table, const string &ifname,
                                              ifname, ip, transport));
     table->Process(req);
 }
+
+void PhysicalInterface::Create(InterfaceTable *table, const string &ifname,
+                               const string &vrf_name, SubType subtype,
+                               EncapType encap, bool no_arp,
+                               const uuid &device_uuid,
+                               const Ip6Address &ip,
+                               Interface::Transport transport) {
+    DBRequest req(DBRequest::DB_ENTRY_ADD_CHANGE);
+    req.key.reset(new PhysicalInterfaceKey(ifname));
+    req.data.reset(new PhysicalInterfaceData(NULL, NULL, vrf_name, subtype,
+                                             encap, no_arp, device_uuid,
+                                             ifname, ip, transport));
+    table->Process(req);
+}
+
 
 // Enqueue DBRequest to delete a Host Interface
 void PhysicalInterface::DeleteReq(InterfaceTable *table, const string &ifname) {

@@ -516,6 +516,14 @@ void Agent::CopyConfig(AgentParam *params) {
         router_id_configured_ = false;
     }
 
+    v6_prefix_len_ = params_->vhost_plen_v6();
+    v6_gateway_id_ = params_->vhost_gw_v6();
+    v6_router_id_ = params_->vhost_addr_v6();
+    if (v6_router_id_.to_string() != "::") {
+        v6_router_id_configured_ = false;
+    }
+
+    v6_compute_node_ip_ = v6_router_id_;
     compute_node_ip_ = router_id_;
     if (params_->tunnel_type() == "MPLSoUDP")
         TunnelType::SetDefaultType(TunnelType::MPLS_UDP);

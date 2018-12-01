@@ -734,8 +734,12 @@ void InterfaceNH::DeleteHostPortReq(Agent *agent, const string &ifname) {
 void InterfaceNH::CreatePhysicalInterfaceNh(const string &ifname,
                                             const MacAddress &mac) {
     DBRequest req(DBRequest::DB_ENTRY_ADD_CHANGE);
+    //zx-ipv6
+    //req.key.reset(new InterfaceNHKey(new PhysicalInterfaceKey(ifname),
+    //                                 false, InterfaceNHFlags::INET4, mac));
+
     req.key.reset(new InterfaceNHKey(new PhysicalInterfaceKey(ifname),
-                                     false, InterfaceNHFlags::INET4, mac));
+                                     false, InterfaceNHFlags::INET6, mac));
     req.data.reset(new InterfaceNHData(Agent::GetInstance()->fabric_vrf_name()));
     NextHopTable::GetInstance()->Process(req);
 }

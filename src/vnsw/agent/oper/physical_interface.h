@@ -52,7 +52,7 @@ public:
     bool persistent() const {return persistent_;}
     EncapType encap_type() const { return encap_type_; }
     bool no_arp() const { return no_arp_; }
-    Ip4Address ip_addr() const { return ip_;}
+    IpAddress ip_addr() const { return ip_;}
 
     // Helper functions
     static void CreateReq(InterfaceTable *table, const std::string &ifname,
@@ -67,6 +67,20 @@ public:
                        const boost::uuids::uuid &device_uuid,
                        const Ip4Address &ip,
                        Interface::Transport transport_);
+
+    static void CreateReq(InterfaceTable *table, const std::string &ifname,
+                          const std::string &vrf_name, SubType subtype,
+                          EncapType encap, bool no_arp,
+                          const boost::uuids::uuid &device_uuid,
+                          const Ip6Address &ip,
+                          Interface::Transport transport);
+    static void Create(InterfaceTable *table, const std::string &ifname,
+                       const std::string &vrf_name, SubType subtype,
+                       EncapType encap, bool no_arp,
+                       const boost::uuids::uuid &device_uuid,
+                       const Ip6Address &ip,
+                       Interface::Transport transport_);
+    
     static void DeleteReq(InterfaceTable *table, const std::string &ifname);
     static void Delete(InterfaceTable *table, const std::string &ifname);
     bool OnChange(PhysicalInterfaceData *data);
@@ -80,7 +94,7 @@ private:
     bool no_arp_;
     PhysicalDeviceRef physical_device_;
     std::string display_name_;
-    Ip4Address ip_;
+    IpAddress ip_;
     DISALLOW_COPY_AND_ASSIGN(PhysicalInterface);
 };
 
@@ -94,12 +108,23 @@ struct PhysicalInterfaceData : public InterfaceData {
                           const std::string &display_name,
                           const Ip4Address &ip,
                           Interface::Transport transport);
+
+    PhysicalInterfaceData(Agent *agent, IFMapNode *node,
+                          const std::string &vrf_name,
+                          PhysicalInterface::SubType subtype,
+                          PhysicalInterface::EncapType encap,
+                          bool no_arp,
+                          const boost::uuids::uuid &device_uuid,
+                          const std::string &display_name,
+                          const Ip6Address &ip,
+                          Interface::Transport transport);
+    
     PhysicalInterface::SubType subtype_;
     PhysicalInterface::EncapType encap_type_;
     bool no_arp_;
     boost::uuids::uuid device_uuid_;
     std::string display_name_;
-    Ip4Address ip_;
+    IpAddress ip_;
 };
 
 struct PhysicalInterfaceKey : public InterfaceKey {

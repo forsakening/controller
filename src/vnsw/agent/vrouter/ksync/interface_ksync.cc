@@ -206,7 +206,12 @@ InterfaceKSyncEntry::InterfaceKSyncEntry(InterfaceKSyncObject *obj,
         encap_type_ = physical_intf->encap_type();
         no_arp_ = physical_intf->no_arp();
         display_name_ = physical_intf->display_name();
-        ip_ = physical_intf->ip_addr().to_ulong();
+        //zx-ipv6
+        //ip_ = physical_intf->ip_addr().to_ulong();
+        if (physical_intf->ip_addr().is_v4())
+            ip_ = physical_intf->ip_addr().to_v4().to_ulong();
+        else if (physical_intf->ip_addr().is_v6())
+            primary_ip6_ = physical_intf->ip_addr().to_v6();
     }
 }
 
@@ -848,6 +853,15 @@ int InterfaceKSyncEntry::Encode(sandesh_op::type op, char *buf, int buf_len) {
             nic_queue_list.push_back(*it);
         }
         encoder.set_vifr_hw_queues(nic_queue_list);
+
+        //zx-ipv6
+        if (!primary_ip6_.is_unspecified()) {
+            uint64_t data[2];
+            Ip6AddressToU64Array(primary_ip6_, data, 2);
+            encoder.set_vifr_ip6_u(data[0]);
+            encoder.set_vifr_ip6_l(data[1]);
+        }
+        
         break;
     }
 

@@ -483,6 +483,11 @@ void KSyncTcp::TcpInit() {
     boost::system::error_code ec;
     boost::asio::ip::address ip;
     ip = agent_->vrouter_server_ip();
+    if (ip.to_string() == "0.0.0.0")
+    {
+        ip = agent_->vrouter_server_ipv6();
+    }
+    
     uint32_t port = agent_->vrouter_server_port();
     KSyncSockTcp::Init(event_mgr, ip, port,
                        agent_->params()->ksync_thread_cpu_pin_policy());

@@ -115,6 +115,8 @@ public:
     static const uint32_t kFlowStatsInterval = (1000); // time in milliseconds
     static const uint32_t kVrouterStatsInterval = (30 * 1000); //time-millisecs
     typedef std::vector<Ip4Address> AddressList;
+    typedef std::vector<Ip6Address> AddressList6;
+    
 
     // Agent mode we are running in
     enum AgentMode {
@@ -162,6 +164,11 @@ public:
         Ip4Address prefix_;
         int plen_;
         Ip4Address gw_;
+
+        Ip6Address v6addr_;
+        Ip6Address v6prefix_;
+        int v6plen_;
+        Ip6Address v6gw_;
     };
 
     AgentParam(bool enable_flow_options = true,
@@ -174,7 +181,10 @@ public:
     virtual int Validate();
 
     bool IsVHostConfigured() {
-        return vhost_.addr_.to_ulong() != 0? true : false;
+        bool v4set =  vhost_.addr_.to_ulong() != 0? true : false;
+        bool v6set =  vhost_.v6addr_.to_string() != "::"? true : false;
+
+        return (v4set | v6set);
     }
 
     const std::string &vhost_name() const { return vhost_.name_; }
@@ -182,6 +192,12 @@ public:
     const Ip4Address &vhost_prefix() const { return vhost_.prefix_; }
     const int vhost_plen() const { return vhost_.plen_; }
     const Ip4Address &vhost_gw() const { return vhost_.gw_; }
+
+    //v6
+    const Ip6Address &vhost_addr_v6() const { return vhost_.v6addr_; }
+    const Ip6Address &vhost_prefix_v6() const { return vhost_.v6prefix_; }
+    const int vhost_plen_v6() const { return vhost_.v6plen_; }
+    const Ip6Address &vhost_gw_v6() const { return vhost_.v6gw_; }
 
     const std::string &xen_ll_name() const { return xen_ll_.name_; }
     const void set_xen_ll_name(const std::string &name) { 
@@ -220,6 +236,7 @@ public:
         return mirror_client_port_;
     }
     const Ip4Address &mgmt_ip() const { return mgmt_ip_; }
+    const Ip6Address &mgmt_ip6() const { return mgmt_ip6_; }
     const std::string &tunnel_type() const { return tunnel_type_; }
     const std::string &metadata_shared_secret() const { return metadata_shared_secret_; }
     uint16_t metadata_proxy_port() const {
@@ -363,6 +380,11 @@ public:
     const AddressList &compute_node_address_list() const {
         return compute_node_address_list_;
     }
+
+    const AddressList6 &compute_node_address_list6() const {
+        return compute_node_address_list6_;
+    }
+    
     void BuildAddressList(const std::string &val);
 
     std::string exception_packet_interface() const {
@@ -561,6 +583,23 @@ protected:
      uint16_t *port1, Ip4Address *server2, uint16_t *port2,
      const std::string &key);
 
+    bool GetIpAddress6(const std::string &str, Ip6Address *addr);
+    bool ParseIp6(const std::string &key, Ip6Address *server);
+    bool ParseServerList6(const std::string &key, Ip6Address *s1, Ip6Address *s2);
+    bool ParseAddress6(const std::string &addr_string,
+                      Ip6Address *server, uint16_t *port);
+    bool ParseServerList6(const std::string &key, Ip6Address *server1,
+                         uint16_t *port1, Ip6Address *server2, uint16_t *port2);
+    void ParseIpArgument6(const boost::program_options::variables_map &var_map, 
+                         Ip6Address &server, const std::string &key);
+    bool ParseServerListArguments6
+    (const boost::program_options::variables_map &var_map, Ip6Address &server1,
+     Ip6Address &server2, const std::string &key);
+    bool ParseServerListArguments6
+    (const boost::program_options::variables_map &var_map, Ip6Address *server1,
+     uint16_t *port1, Ip6Address *server2, uint16_t *port2,
+     const std::string &key);
+
 private:
     friend class AgentParamTest;
     void UpdateBgpAsaServicePortRange();
@@ -649,6 +688,7 @@ private:
     uint32_t dns_max_retries_;
     uint16_t mirror_client_port_;
     Ip4Address mgmt_ip_;
+    Ip6Address mgmt_ip6_;
     HypervisorMode hypervisor_mode_;
     PortInfo xen_ll_;
     std::string tunnel_type_;
@@ -716,6 +756,7 @@ private:
     VmwareMode vmware_mode_;
     // List of IP addresses on the compute node.
     AddressList compute_node_address_list_;
+    AddressList6 compute_node_address_list6_;
     std::string nexthop_server_endpoint_;
     bool nexthop_server_add_pid_;
     bool vrouter_on_nic_mode_;

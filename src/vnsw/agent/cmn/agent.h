@@ -589,9 +589,19 @@ public:
     uint32_t vhost_prefix_len() const {return prefix_len_;}
     void set_vhost_prefix_len(uint32_t plen) {prefix_len_ = plen;}
 
+    //v6
+    uint32_t vhost_v6prefix_len() const {return v6_prefix_len_;}
+    void set_vhost_v6prefix_len(uint32_t plen) {v6_prefix_len_ = plen;}
+
     Ip4Address vhost_default_gateway() const {return gateway_id_;}
     void set_vhost_default_gateway(const Ip4Address &addr) {
         gateway_id_ = addr;
+    }
+
+    //v6
+    Ip6Address vhost_default_v6gateway() const {return v6_gateway_id_;}
+    void set_vhost_default_v6gateway(const Ip6Address &addr) {
+        v6_gateway_id_ = addr;
     }
 
     Ip4Address router_id() const {return router_id_;}
@@ -605,9 +615,27 @@ public:
         router_id_configured_ = value;
     }
 
+    //v6
+    Ip6Address v6router_id() const {return v6_router_id_;}
+    const Ip6Address *v6router_ip_ptr() const {return &v6_router_id_;}
+    void set_v6router_id(const Ip6Address &addr) {
+        v6_router_id_ = addr;
+        set_v6router_id_configured(true);
+    }
+    bool v6router_id_configured() { return v6_router_id_configured_; }
+    void set_v6router_id_configured(bool value) {
+        v6_router_id_configured_ = value;
+    }
+
     Ip4Address compute_node_ip() const {return compute_node_ip_;}
     void set_compute_node_ip(const Ip4Address &addr) {
         compute_node_ip_ = addr;
+    }
+
+    //v6
+    Ip6Address v6compute_node_ip() const {return v6_compute_node_ip_;}
+    void set_v6compute_node_ip(const Ip6Address &addr) {
+        v6_compute_node_ip_ = addr;
     }
 
     AgentSignal *agent_signal() const { return agent_signal_.get(); }
@@ -857,6 +885,15 @@ public:
     const Ip4Address vrouter_server_ip() const {
         return vrouter_server_ip_;
     }
+
+    //v6
+    void set_vrouter_server_ipv6(Ip6Address ip) {
+        vrouter_server_ipv6_ = ip;
+    }
+    const Ip6Address vrouter_server_ipv6() const {
+        return vrouter_server_ipv6_;
+    }
+    
     void set_vrouter_server_port(uint32_t port) {
         vrouter_server_port_ = port;
     }
@@ -1305,11 +1342,16 @@ private:
     uint32_t prefix_len_;
     Ip4Address gateway_id_;
 
+    Ip6Address v6_router_id_;
+    uint32_t v6_prefix_len_;
+    Ip6Address v6_gateway_id_;
+
     // IP address on the compute node used by agent to run services such
     // as metadata service. This is different than router_id when vhost0
     // is un-numbered interface in host-os
     // The compute_node_ip_ is used only in adding Flow NAT rules.
     Ip4Address compute_node_ip_;
+    Ip6Address v6_compute_node_ip_;
     std::string xs_cfg_addr_;
     int8_t xs_idx_;
     std::string xs_addr_[MAX_XMPP_SERVERS];
@@ -1363,6 +1405,7 @@ private:
 
     IFMapAgentParser *ifmap_parser_;
     bool router_id_configured_;
+    bool v6_router_id_configured_;
 
     uint16_t mirror_src_udp_port_;
     LifetimeManager *lifetime_manager_;
@@ -1399,6 +1442,7 @@ private:
 
     //IP address to be used for sending vrouter sandesh messages
     Ip4Address vrouter_server_ip_;
+    Ip6Address vrouter_server_ipv6_;
     //TCP port number to be used for sending vrouter sandesh messages
     uint32_t vrouter_server_port_;
     //Max label space of vrouter
