@@ -1357,7 +1357,8 @@ public:
             return (len == Address::kMaxV6Bytes ||
                 len == 2 * Address::kMaxV6Bytes);
         } else if (afi == BgpAf::IPv6 && safi == BgpAf::Vpn) {
-            return (len == RouteDistinguisher::kSize + Address::kMaxV6Bytes);
+            return (len == RouteDistinguisher::kSize + Address::kMaxV6Bytes ||
+                len == 2 * (RouteDistinguisher::kSize + Address::kMaxV6Bytes));
         } else if (afi == BgpAf::L2Vpn && safi == BgpAf::EVpn) {
             return (len == Address::kMaxV4Bytes ||
                 len == Address::kMaxV6Bytes);

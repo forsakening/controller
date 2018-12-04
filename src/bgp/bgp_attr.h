@@ -312,8 +312,8 @@ struct PmsiTunnelSpec : public BgpAttribute {
 
     uint32_t GetLabel(bool is_vni = false) const;
     void SetLabel(uint32_t label, bool is_vni = false);
-    Ip4Address GetIdentifier() const;
-    void SetIdentifier(Ip4Address identifier);
+    IpAddress GetIdentifier() const;
+    void SetIdentifier(IpAddress identifier);
 
     std::string GetTunnelTypeString() const;
     std::string GetTunnelArTypeString() const;
@@ -347,7 +347,7 @@ public:
 
     const uint8_t tunnel_flags() const { return tunnel_flags_; }
     const uint8_t tunnel_type() const { return tunnel_type_; }
-    const Ip4Address identifier() const { return identifier_; }
+    const IpAddress identifier() const { return identifier_; }
     const uint32_t label() const { return label_; }
 
 private:
@@ -358,7 +358,7 @@ private:
 
     uint8_t tunnel_flags_;
     uint8_t tunnel_type_;
-    Ip4Address identifier_;
+    IpAddress identifier_;
     uint32_t label_;
     mutable tbb::atomic<int> refcount_;
     PmsiTunnelDB *pmsi_tunnel_db_;
@@ -628,14 +628,14 @@ struct BgpAttrLabelBlock : public BgpAttribute {
 
 class BgpOListElem {
 public:
-    BgpOListElem(Ip4Address address, uint32_t label,
+    BgpOListElem(IpAddress address, uint32_t label,
         std::vector<std::string> encap = std::vector<std::string>())
         : address(address), label(label), encap(encap) {
     }
 
     bool operator<(const BgpOListElem &rhs) const;
 
-    Ip4Address address;
+    IpAddress address;
     uint32_t label;
     std::vector<std::string> encap;
 };

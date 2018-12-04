@@ -2076,12 +2076,22 @@ BgpAttrPtr BgpPeer::GetMpNlriNexthop(BgpMpNlri *nlri, BgpAttrPtr attr) {
         } else if (nlri->safi == BgpAf::Vpn) {
             Ip6Address::bytes_type bt = { { 0 } };
             size_t rdsize = RouteDistinguisher::kSize;
-            copy(nlri->nexthop.begin() + rdsize,
-                nlri->nexthop.begin() + rdsize + sizeof(bt), bt.begin());
-            Ip6Address v6_addr(bt);
-            if (v6_addr.is_v4_mapped()) {
-                addr = Address::V4FromV4MappedV6(v6_addr);
-                update_nh = true;
+            for (int idx = 0; idx < 2; ++idx) {
+                if ((idx + 1) * (rdsize + sizeof(bt)) > nlri->nexthop.size())
+                    break;
+                copy(nlri->nexthop.begin() + idx * (rdsize + sizeof(bt)) + rdsize,
+                    nlri->nexthop.begin() + (idx + 1) * (rdsize + sizeof(bt)), bt.begin());
+                Ip6Address v6_addr(bt);
+                if (v6_addr.is_v4_mapped()) {
+                    addr = Address::V4FromV4MappedV6(v6_addr);
+                    update_nh = true;
+                    break;
+                }
+                if (!v6_addr.is_link_local()) {
+                    addr = v6_addr;
+                    update_nh = true;
+                    break;
+                }
             }
         }
     }

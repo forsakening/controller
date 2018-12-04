@@ -284,16 +284,27 @@ void PmsiTunnelSpec::SetLabel(uint32_t in_label, bool is_vni) {
     label = (is_vni ? in_label : (in_label << 4 | 0x01));
 }
 
-Ip4Address PmsiTunnelSpec::GetIdentifier() const {
-    if (identifier.size() < 4)
-        return Ip4Address();
-    return Ip4Address(get_value(&identifier[0], 4));
+IpAddress PmsiTunnelSpec::GetIdentifier() const {
+    if (identifier.size() == 4) {
+        return Ip4Address(get_value(&identifier[0], 4));
+    } else if (identifier.size() == 16) {
+        Ip6Address::bytes_type bt = { { 0 } };
+        copy(identifier.begin(), identifier.begin() + sizeof(bt), bt.begin());
+        return Ip6Address(bt);
+    }
+    return Ip4Address();
 }
 
-void PmsiTunnelSpec::SetIdentifier(Ip4Address in_identifier) {
-    identifier.resize(4, 0);
-    const Ip4Address::bytes_type &bytes = in_identifier.to_bytes();
-    std::copy(bytes.begin(), bytes.begin() + 4, identifier.begin());
+void PmsiTunnelSpec::SetIdentifier(IpAddress in_identifier) {
+    if (in_identifier.is_v4()) {
+        identifier.resize(4, 0);
+        const Ip4Address::bytes_type &bytes = in_identifier.to_v4().to_bytes();
+        std::copy(bytes.begin(), bytes.begin() + 4, identifier.begin());
+    } else {
+        identifier.resize(16, 0);
+        const Ip6Address::bytes_type &bytes = in_identifier.to_v6().to_bytes();
+        std::copy(bytes.begin(), bytes.begin() + 16, identifier.begin());
+    }
 }
 
 std::string PmsiTunnelSpec::GetTunnelTypeString() const {

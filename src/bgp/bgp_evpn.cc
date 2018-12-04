@@ -116,8 +116,8 @@ bool EvpnMcastNode::UpdateAttributes(EvpnRoute *route) {
         changed = true;
     }
 
-    if (address_ != path->GetAttr()->nexthop().to_v4()) {
-        address_ = path->GetAttr()->nexthop().to_v4();
+    if (address_ != path->GetAttr()->nexthop()) {
+        address_ = path->GetAttr()->nexthop();
         changed = true;
     }
     if (replicator_address_ != pmsi_tunnel->identifier()) {
@@ -168,7 +168,7 @@ void EvpnLocalMcastNode::AddInclusiveMulticastRoute() {
     // TOR Agents results in the same Inclusive Multicast prefix.
     const EvpnPrefix &mac_prefix = route_->GetPrefix();
     RouteDistinguisher rd(
-        address_.to_ulong(), mac_prefix.route_distinguisher().GetVrfId());
+        address_.is_v4() ? address_.to_v4().to_ulong() : 0, mac_prefix.route_distinguisher().GetVrfId());
     EvpnPrefix prefix(rd, mac_prefix.tag(), address_);
     EvpnRoute rt_key(prefix);
 

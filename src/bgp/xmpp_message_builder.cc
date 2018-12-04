@@ -277,8 +277,15 @@ void BgpXmppMessage::EncodeEnetNextHop(const BgpRoute *route,
                                        autogen::EnetItemType *item) {
     autogen::EnetNextHopType item_nexthop;
 
-    item_nexthop.af = BgpAf::IPv4;
-    item_nexthop.address = nexthop.address().to_v4().to_string();
+    const IpAddress &address = nexthop.address();
+    if (address.is_v4()) {
+        item_nexthop.af = BgpAf::IPv4;
+        item_nexthop.address = address.to_v4().to_string();
+    } else {
+        item_nexthop.af = BgpAf::IPv6;
+        item_nexthop.address = address.to_v6().to_string();
+    }
+
     item_nexthop.label = nexthop.label();
     item_nexthop.l3_label = nexthop.l3_label();
     if (!nexthop.mac().IsZero())
