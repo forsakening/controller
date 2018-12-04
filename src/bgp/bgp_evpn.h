@@ -58,8 +58,8 @@ public:
     uint8_t type() const { return type_; }
     const BgpAttr *attr() const { return attr_.get(); }
     uint32_t label() const { return label_; }
-    Ip4Address address() const { return address_; }
-    Ip4Address replicator_address() const { return replicator_address_; }
+    IpAddress address() const { return address_; }
+    IpAddress replicator_address() const { return replicator_address_; }
     bool edge_replication_not_supported() const {
         return edge_replication_not_supported_;
     }
@@ -76,8 +76,8 @@ protected:
     uint8_t type_;
     BgpAttrPtr attr_;
     uint32_t label_;
-    Ip4Address address_;
-    Ip4Address replicator_address_;
+    IpAddress address_;
+    IpAddress replicator_address_;
     bool edge_replication_not_supported_;
     bool assisted_replication_supported_;
     bool assisted_replication_leaf_;

@@ -979,9 +979,15 @@ void EvpnRoute::BuildProtoPrefix(BgpProtoPrefix *proto_prefix,
 
 void EvpnRoute::BuildBgpProtoNextHop(vector<uint8_t> &nh,
         IpAddress nexthop) const {
-    nh.resize(4);
-    const Ip4Address::bytes_type &addr_bytes = nexthop.to_v4().to_bytes();
-    copy(addr_bytes.begin(), addr_bytes.end(), nh.begin());
+    if (nexthop.is_v4()) {
+        nh.resize(Address::kMaxV4Bytes);
+        const Ip4Address::bytes_type &addr_bytes = nexthop.to_v4().to_bytes();
+        copy(addr_bytes.begin(), addr_bytes.end(), nh.begin());
+    } else {
+        nh.resize(Address::kMaxV6Bytes);
+        const Ip6Address::bytes_type &addr_bytes = nexthop.to_v6().to_bytes();
+        copy(addr_bytes.begin(), addr_bytes.end(), nh.begin());
+    }
 }
 
 DBEntryBase::KeyPtr EvpnRoute::GetDBRequestKey() const {

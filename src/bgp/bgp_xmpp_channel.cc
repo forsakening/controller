@@ -893,7 +893,7 @@ bool BgpXmppChannel::ProcessMcastItem(string vrf_name,
                 " for multicast route " << mc_prefix.ToString());
             return false;
         }
-        BgpAttrNextHop nexthop(nh_address.to_v4().to_ulong());
+        BgpAttrNextHop nexthop(nh_address);
         attrs.push_back(&nexthop);
 
         // Process tunnel encapsulation list.
@@ -1255,6 +1255,7 @@ bool BgpXmppChannel::ProcessItem(string vrf_name,
                     continue;
                 if (family == Address::INET &&
                     tun_encap.tunnel_encap() == TunnelEncapType::VXLAN) {
+                    continue;
                 }
                 if (family == Address::EVPN &&
                     tun_encap.tunnel_encap() != TunnelEncapType::VXLAN) {
@@ -1303,11 +1304,11 @@ bool BgpXmppChannel::ProcessItem(string vrf_name,
                 comm.communities.push_back(rt_community);
             }
 
-            BgpAttrNextHop nexthop(nh_address.to_v4().to_ulong());
+            BgpAttrNextHop nexthop(nh_address);
             attrs.push_back(&nexthop);
 
             BgpAttrSourceRd source_rd(
-                RouteDistinguisher(nh_address.to_v4().to_ulong(), instance_id));
+                RouteDistinguisher(nh_address.is_v4() ? nh_address.to_v4().to_ulong(): 0, instance_id));
             if (!master)
                 attrs.push_back(&source_rd);
 
@@ -1533,6 +1534,10 @@ bool BgpXmppChannel::ProcessInet6Item(string vrf_name,
                 TunnelEncap tun_encap(*eit);
                 if (tun_encap.tunnel_encap() == TunnelEncapType::UNSPEC)
                     continue;
+                if (family == Address::INET6 &&
+                    tun_encap.tunnel_encap() == TunnelEncapType::VXLAN) {
+                    continue;
+                }
                 if (family == Address::EVPN &&
                     tun_encap.tunnel_encap() != TunnelEncapType::VXLAN) {
                     continue;
@@ -1585,7 +1590,7 @@ bool BgpXmppChannel::ProcessInet6Item(string vrf_name,
 
             BgpAttrSourceRd source_rd;
             if (!master) {
-                uint32_t addr = nh_address.to_v4().to_ulong();
+                uint32_t addr = nh_address.is_v4() ? nh_address.to_v4().to_ulong() : 0;
                 source_rd =
                     BgpAttrSourceRd(RouteDistinguisher(addr, instance_id));
                 attrs.push_back(&source_rd);
@@ -1856,11 +1861,11 @@ bool BgpXmppChannel::ProcessEnetItem(string vrf_name,
         if (med.med != 0)
             attrs.push_back(&med);
 
-        BgpAttrNextHop nexthop(nh_address.to_v4().to_ulong());
+        BgpAttrNextHop nexthop(nh_address);
         attrs.push_back(&nexthop);
 
         BgpAttrSourceRd source_rd(
-            RouteDistinguisher(nh_address.to_v4().to_ulong(), instance_id));
+            RouteDistinguisher(nh_address.is_v4() ? nh_address.to_v4().to_ulong() : 0, instance_id));
         attrs.push_back(&source_rd);
 
         // Process security group list.
@@ -1903,7 +1908,7 @@ bool BgpXmppChannel::ProcessEnetItem(string vrf_name,
                 pmsi_spec.tunnel_type =
                     PmsiTunnelSpec::AssistedReplicationContrail;
                 pmsi_spec.tunnel_flags = PmsiTunnelSpec::ARLeaf;
-                pmsi_spec.SetIdentifier(replicator_address.to_v4());
+                pmsi_spec.SetIdentifier(replicator_address);
             } else {
                 pmsi_spec.tunnel_type = PmsiTunnelSpec::IngressReplication;
                 if (item.entry.assisted_replication_supported) {
@@ -1914,7 +1919,7 @@ bool BgpXmppChannel::ProcessEnetItem(string vrf_name,
                     pmsi_spec.tunnel_flags |=
                         PmsiTunnelSpec::EdgeReplicationSupported;
                 }
-                pmsi_spec.SetIdentifier(nh_address.to_v4());
+                pmsi_spec.SetIdentifier(nh_address);
             }
             pmsi_spec.SetLabel(label, label_is_vni);
             attrs.push_back(&pmsi_spec);
