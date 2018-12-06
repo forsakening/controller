@@ -44,7 +44,7 @@ NHKSyncEntry::NHKSyncEntry(NHKSyncObject *obj, const NHKSyncEntry *entry,
     is_local_ecmp_nh_(entry->is_local_ecmp_nh_),
     is_bridge_(entry->is_bridge_), comp_type_(entry->comp_type_),
     tunnel_type_(entry->tunnel_type_), prefix_len_(entry->prefix_len_),
-    nh_id_(entry->nh_id()),
+    nh_id_(entry->nh_id()), ipv6_flag_(entry->ipv6_flag_),
     component_nh_key_list_(entry->component_nh_key_list_),
     vxlan_nh_(entry->vxlan_nh_),
     flood_unknown_unicast_(entry->flood_unknown_unicast_),
@@ -60,7 +60,7 @@ NHKSyncEntry::NHKSyncEntry(NHKSyncObject *obj, const NextHop *nh) :
     vrf_id_(0), interface_(NULL), valid_(nh->IsValid()),
     policy_(nh->PolicyEnabled()), is_mcast_nh_(false), nh_(nh),
     vlan_tag_(VmInterface::kInvalidVlanId), is_bridge_(false),
-    tunnel_type_(TunnelType::INVALID), prefix_len_(32), nh_id_(nh->id()),
+    tunnel_type_(TunnelType::INVALID), prefix_len_(32), nh_id_(nh->id()), ipv6_flag_(nh->ipv6_flag()),
     vxlan_nh_(false), flood_unknown_unicast_(false),
     learning_enabled_(nh->learning_enabled()), need_pbb_tunnel_(false),
     etree_leaf_ (false), layer2_control_word_(false) {
@@ -221,6 +221,11 @@ KSyncDBObject *NHKSyncEntry::GetObject() const {
 
 bool NHKSyncEntry::IsLess(const KSyncEntry &rhs) const {
     const NHKSyncEntry &entry = static_cast<const NHKSyncEntry &>(rhs);
+
+    //zx-ipv6
+    if (ipv6_flag_ != entry.ipv6_flag_) {
+        return ipv6_flag_ < entry.ipv6_flag_;
+    }
 
     if (type_ != entry.type_) {
         return type_ < entry.type_;
@@ -775,7 +780,11 @@ int NHKSyncEntry::Encode(sandesh_op::type op, char *buf, int buf_len) {
     }
     encoder.set_nhr_rid(0);
     encoder.set_nhr_vrf(vrf_id_);
-    encoder.set_nhr_family(AF_INET);
+    if (ipv6_flag_)
+        encoder.set_nhr_family(AF_INET6);
+    else
+        encoder.set_nhr_family(AF_INET);
+    
     uint32_t flags = 0;
     if (valid_) {
         flags |= NH_FLAG_VALID;

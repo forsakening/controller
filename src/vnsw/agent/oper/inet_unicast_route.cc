@@ -88,8 +88,11 @@ InetUnicastAgentRouteTable::FindLPM(const InetUnicastRouteEntry &rt_key) {
 }
 
 InetUnicastRouteEntry *
-InetUnicastAgentRouteTable::FindResolveRoute(const Ip4Address &ip) {
+InetUnicastAgentRouteTable::FindResolveRoute(const IpAddress &ip) {
     uint8_t plen = 32;
+    if (ip.is_v6())
+        plen = 128;
+    
     InetUnicastRouteEntry *rt = NULL;
     do {
         InetUnicastRouteEntry key(NULL, ip, plen, false);
@@ -106,12 +109,16 @@ InetUnicastAgentRouteTable::FindResolveRoute(const Ip4Address &ip) {
 
 InetUnicastRouteEntry *
 InetUnicastAgentRouteTable::FindResolveRoute(const string &vrf_name,
-                                             const Ip4Address &ip) {
+                                             const IpAddress &ip) {
     VrfEntry *vrf =
         Agent::GetInstance()->vrf_table()->FindVrfFromName(vrf_name);
-    InetUnicastAgentRouteTable *rt_table =
-              static_cast<InetUnicastAgentRouteTable *>
+    InetUnicastAgentRouteTable *rt_table = NULL;
+    if (ip.is_v4())
+        rt_table = static_cast<InetUnicastAgentRouteTable *>
               (vrf->GetInet4UnicastRouteTable());
+    else
+        rt_table = static_cast<InetUnicastAgentRouteTable *>
+              (vrf->GetInet6UnicastRouteTable());
     return rt_table->FindResolveRoute(ip);
 }
 

@@ -1231,7 +1231,7 @@ NextHop *ReceiveNHKey::AllocEntry() const {
         // in DB state set on deleted interface entry
         intf = NULL;
     }
-    return new ReceiveNH(intf, policy_);
+    return new ReceiveNH(intf, policy_, _v6_flag);
 }
 
 void ReceiveNH::SetKey(const DBRequestKey *key) {
@@ -1253,6 +1253,17 @@ void ReceiveNH::Create(NextHopTable *table, const Interface *intf,
 
     key = static_cast<InterfaceKey *>(intf->GetDBRequestKey().get())->Clone();
     req.key.reset(new ReceiveNHKey(key, true));
+    table->Process(req);
+
+    //zx-ipv6
+    //create ipv6 receive nh
+    bool ipv6_flag = true;
+    key = static_cast<InterfaceKey *>(intf->GetDBRequestKey().get())->Clone();
+    req.key.reset(new ReceiveNHKey(key, policy, ipv6_flag));
+    table->Process(req);
+
+    key = static_cast<InterfaceKey *>(intf->GetDBRequestKey().get())->Clone();
+    req.key.reset(new ReceiveNHKey(key, true, ipv6_flag));
     table->Process(req);
 }
 

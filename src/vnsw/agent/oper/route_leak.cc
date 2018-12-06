@@ -8,6 +8,7 @@
 #include <oper/route_leak.h>
 
 void RouteLeakState::AddIndirectRoute(const AgentRoute *route) {
+    //zx-ipv6 TODO
     InetUnicastAgentRouteTable *table = dest_vrf_->GetInet4UnicastRouteTable();
     const InetUnicastRouteEntry *uc_rt = 
         static_cast<const InetUnicastRouteEntry *>(route);
@@ -55,8 +56,10 @@ void RouteLeakState::AddInterfaceRoute(const AgentRoute *route) {
         return;
     }
 
+    //zx-ipv6
     if (uc_rt->IsHostRoute() &&
-        uc_rt->addr() == agent_->router_id()) {
+        ((uc_rt->addr().is_v4() && uc_rt->addr() == agent_->router_id()) ||
+        (uc_rt->addr().is_v6() && uc_rt->addr() == agent_->v6router_id()))){
         //Dont overwrite vhost IP in default VRF
         if (intf_nh->GetInterface() != agent_->vhost_interface()) {
             local_peer_ = true;
@@ -66,9 +69,13 @@ void RouteLeakState::AddInterfaceRoute(const AgentRoute *route) {
 
     if (intf_nh->GetInterface()->type() == Interface::PACKET) {
         local_peer_ = true;
-        InetUnicastAgentRouteTable *table = 
-            static_cast<InetUnicastAgentRouteTable *>
-            (dest_vrf_->GetInet4UnicastRouteTable());
+        InetUnicastAgentRouteTable *table = NULL;
+        if (uc_rt->addr().is_v4())
+            table = static_cast<InetUnicastAgentRouteTable *>
+                (dest_vrf_->GetInet4UnicastRouteTable());
+        else
+            table = static_cast<InetUnicastAgentRouteTable *>
+                (dest_vrf_->GetInet6UnicastRouteTable());
 
         table->AddHostRoute(dest_vrf_->GetName(), uc_rt->addr(), uc_rt->plen(), 
                             "", true);
@@ -79,7 +86,8 @@ void RouteLeakState::AddInterfaceRoute(const AgentRoute *route) {
         const VmInterface *vm_intf =
             static_cast<const VmInterface *>(intf_nh->GetInterface());
         if (vm_intf->vmi_type() == VmInterface::VHOST) {
-            if (uc_rt->addr() == agent_->router_id()) {
+            if ((uc_rt->addr().is_v4() && uc_rt->addr() == agent_->router_id()) ||
+                (uc_rt->addr().is_v6() && uc_rt->addr() == agent_->v6router_id())){
                 if (uc_rt->FindLocalVmPortPath() == NULL) {
                     local_peer_ = true;
                 }
@@ -140,9 +148,13 @@ void RouteLeakState::AddReceiveRoute(const AgentRoute *route) {
     const VmInterface *vm_intf =
         static_cast<const VmInterface *>(rch_nh->GetInterface());
 
-    InetUnicastAgentRouteTable *table =
-        static_cast<InetUnicastAgentRouteTable *>(
+    InetUnicastAgentRouteTable *table = NULL;
+    if (uc_rt->addr().is_v4())
+        table = static_cast<InetUnicastAgentRouteTable *>(
                 dest_vrf_->GetInet4UnicastRouteTable());
+    else
+        table = static_cast<InetUnicastAgentRouteTable *>(
+                dest_vrf_->GetInet6UnicastRouteTable());
 
     VmInterfaceKey vmi_key(AgentKey::ADD_DEL_CHANGE, vm_intf->GetUuid(),
                            vm_intf->name());
@@ -155,24 +167,31 @@ void RouteLeakState::AddReceiveRoute(const AgentRoute *route) {
 }
 
 bool RouteLeakState::CanAdd(const InetUnicastRouteEntry *rt) {
+    //zx-ipv6
     //Never replace resolve route and default route
-    InetUnicastAgentRouteTable *table =
-        agent_->fabric_vrf()->GetInet4UnicastRouteTable();
+    InetUnicastAgentRouteTable *table = NULL;
+    if (rt->addr().is_v4())
+        table = agent_->fabric_vrf()->GetInet4UnicastRouteTable();
+    else
+        table = agent_->fabric_vrf()->GetInet6UnicastRouteTable();
 
-    if (rt->addr() == Ip4Address(0) && rt->plen() == 0) {
+    if (rt->addr() == IpAddress() && rt->plen() == 0) {
         return false;
     }
 
-    InetUnicastRouteEntry *rsl_rt = table->FindResolveRoute(rt->addr().to_v4());
+    InetUnicastRouteEntry *rsl_rt = table->FindResolveRoute(rt->addr());
     if (rsl_rt && rt->addr() == rsl_rt->addr() &&
         rt->plen() == rsl_rt->plen()) {
         //Dont overwrite resolve route
         return false;
     }
 
-    if (rt->IsHostRoute() &&
-        rt->addr() == agent_->vhost_default_gateway()) {
-        return false;
+    if (rt->IsHostRoute()) {
+        if (rt->addr().is_v4() && rt->addr().to_v4() == agent_->vhost_default_gateway())
+            return false;
+               
+        if (rt->addr().is_v6() && rt->addr().to_v6() == agent_->vhost_default_v6gateway())
+            return false;
     }
 
     //Always add gateway and DNS routes
@@ -182,9 +201,10 @@ bool RouteLeakState::CanAdd(const InetUnicastRouteEntry *rt) {
         return true;
     }
 
-    if ((rt->GetActivePath()->tunnel_bmap() & TunnelType::NativeType()) == 0) {
-        return false;
-    }
+    //zx-ipv6 TODO
+    //if ((rt->GetActivePath()->tunnel_bmap() & TunnelType::NativeType()) == 0) {
+    //    return false;
+    //}
 
     return true;
 }
@@ -231,7 +251,7 @@ RouteLeakVrfState::RouteLeakVrfState(VrfEntry *source_vrf,
     AgentRouteTable *table = source_vrf->GetInet4UnicastRouteTable();
     route_listener_id_ =  table->Register(boost::bind(&RouteLeakVrfState::Notify, 
                                                       this, _1, _2));
-
+    
     //Walker would be used to address change of dest VRF table
     //Everytime dest vrf change all the route from old dest VRF
     //would be deleted and added to new dest VRF if any
@@ -240,11 +260,24 @@ RouteLeakVrfState::RouteLeakVrfState(VrfEntry *source_vrf,
                     boost::bind(&RouteLeakVrfState::WalkCallBack, this, _1, _2),
                     boost::bind(&RouteLeakVrfState::WalkDoneInternal, this, _2));
     table->WalkTable(walk_ref_);
+
+    //zx-ipv6
+    AgentRouteTable *tablev6 = source_vrf->GetInet6UnicastRouteTable();
+    route_listener_id_v6_ = tablev6->Register(boost::bind(&RouteLeakVrfState::Notify, 
+                                                      this, _1, _2));
+    walk_ref_v6_ = tablev6->AllocWalker(
+                    boost::bind(&RouteLeakVrfState::WalkCallBack, this, _1, _2),
+                    boost::bind(&RouteLeakVrfState::WalkDoneInternal, this, _2));
+    tablev6->WalkTable(walk_ref_v6_);
 }
 
 RouteLeakVrfState::~RouteLeakVrfState() {
     source_vrf_->GetInet4UnicastRouteTable()->ReleaseWalker(walk_ref_);
     source_vrf_->GetInet4UnicastRouteTable()->Unregister(route_listener_id_);
+
+    //zx-ipv6
+    source_vrf_->GetInet6UnicastRouteTable()->ReleaseWalker(walk_ref_v6_);
+    source_vrf_->GetInet6UnicastRouteTable()->Unregister(route_listener_id_v6_);
 }
 
 void RouteLeakVrfState::WalkDoneInternal(DBTableBase *part) {
@@ -284,15 +317,28 @@ void RouteLeakVrfState::Delete() {
 }
 
 bool RouteLeakVrfState::Notify(DBTablePartBase *partition, DBEntryBase *entry) {
+    //zx-ipv6
     AgentRoute *route = static_cast<AgentRoute *>(entry);
+    string route_str = route->ToString();
+    bool _isv4 = true;
+    Ip4Address _ipv4;
+    Ip6Address _ipv6;
+    int prefix_len;
+    boost::system::error_code ec;
+    ec = Ip4PrefixParse(route_str, &_ipv4, &prefix_len);
+    if (ec.value() != 0) {
+        _isv4 = false;
+    }
+
+    DBTableBase::ListenerId listen_id = _isv4 ? route_listener_id_ : route_listener_id_v6_;
     RouteLeakState *state =
         static_cast<RouteLeakState *>(entry->GetState(partition->parent(),
-                                                      route_listener_id_));
+                                                      listen_id));
 
     if (route->IsDeleted() || deleted_) {
         if (state) {
             //Delete the route
-            entry->ClearState(partition->parent(), route_listener_id_);
+            entry->ClearState(partition->parent(), listen_id);
             state->DeleteRoute(route);
             delete state;
         }
@@ -300,9 +346,14 @@ bool RouteLeakVrfState::Notify(DBTablePartBase *partition, DBEntryBase *entry) {
     }
 
     if (state == NULL && dest_vrf_) {
-        state = new RouteLeakState(dest_vrf_->GetInet4UnicastRouteTable()->agent(), 
-                                   NULL);
-        route->SetState(partition->parent(), route_listener_id_, state);
+        if (_isv4)
+            state = new RouteLeakState(dest_vrf_->GetInet4UnicastRouteTable()->agent(), 
+                                       NULL);
+        else
+            state = new RouteLeakState(dest_vrf_->GetInet6UnicastRouteTable()->agent(), 
+                                       NULL);
+        
+        route->SetState(partition->parent(), listen_id, state);
     }
 
     if (state == NULL) {

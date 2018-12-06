@@ -101,6 +101,8 @@ private:
     TunnelType tunnel_type_;
     uint8_t prefix_len_;
     uint32_t nh_id_;
+    //zx-ipv6
+    bool ipv6_flag_;
     ComponentNHKeyList component_nh_key_list_;
     bool vxlan_nh_;
     bool flood_unknown_unicast_;

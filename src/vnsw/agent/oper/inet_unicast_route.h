@@ -236,9 +236,9 @@ public:
                                const SecurityGroupList &sg_list_,
                                const TagList &tag_list,
                                const PathPreference &path_preference);
-    InetUnicastRouteEntry *FindResolveRoute(const Ip4Address &ip);
+    InetUnicastRouteEntry *FindResolveRoute(const IpAddress &ip);
     static InetUnicastRouteEntry *FindResolveRoute(const string &vrf_name, 
-                                                   const Ip4Address &ip);
+                                                   const IpAddress &ip);
     static void CheckAndAddArpReq(const string &vrf_name, const Ip4Address &ip,
                                   const Interface *intf,
                                   const VnListType &vn_list,

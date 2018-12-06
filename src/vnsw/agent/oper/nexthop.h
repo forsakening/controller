@@ -398,6 +398,10 @@ public:
     bool IsValid() const {return valid_;};
     bool PolicyEnabled() const {return policy_;};
     uint32_t id() const { return id_;}
+
+    //zx-ipv6
+    virtual bool ipv6_flag() const {return false;}
+    
     void set_id(uint32_t index) { id_ = index;}
 
     void set_etree_leaf(bool val) {
@@ -623,6 +627,10 @@ public:
     ReceiveNHKey(InterfaceKey *intf_key, bool policy) :
         NextHopKey(NextHop::RECEIVE, policy), intf_key_(intf_key) {
     }
+
+    ReceiveNHKey(InterfaceKey *intf_key, bool policy, bool _ipv6) :
+        NextHopKey(NextHop::RECEIVE, policy), intf_key_(intf_key), _v6_flag(_ipv6) {
+    }
     virtual ~ReceiveNHKey() { };
     virtual NextHop *AllocEntry() const;
     virtual NextHopKey *Clone() const {
@@ -633,6 +641,7 @@ private:
     friend class ReceiveNH;
     boost::scoped_ptr<InterfaceKey> intf_key_;
     DISALLOW_COPY_AND_ASSIGN(ReceiveNHKey);
+    bool _v6_flag;
 };
 
 class ReceiveNHData : public NextHopData {
@@ -649,6 +658,10 @@ class ReceiveNH : public NextHop {
 public:
     ReceiveNH(Interface *intf, bool policy) : 
         NextHop(RECEIVE, true, policy), interface_(intf) { };
+
+    ReceiveNH(Interface *intf, bool policy, bool ipv6) : 
+        NextHop(RECEIVE, true, policy), interface_(intf), _ipv6_flag(ipv6){ };
+        
     virtual ~ReceiveNH() { };
 
     virtual void SetKey(const DBRequestKey *key);
@@ -661,6 +674,11 @@ public:
     virtual bool CanAdd() const;
     virtual bool NextHopIsLess(const DBEntry &rhs) const {
         const ReceiveNH &a = static_cast<const ReceiveNH &>(rhs);
+        //zx-ipv6 add ipv6 flag to compare the key!!!
+        //the intrusive::set tree will use this method
+        if (_ipv6_flag != a.ipv6_flag())
+            return _ipv6_flag < a.ipv6_flag();
+        
         return interface_.get() < a.interface_.get();
     };
 
@@ -669,6 +687,9 @@ public:
             (new ReceiveNHKey(dynamic_cast<InterfaceKey *>(interface_->GetDBRequestKey().release()),
                               policy_));
     };
+
+    //zx-ipv6
+    bool ipv6_flag() const {return _ipv6_flag;}
 
     static void CreateReq(const string &interface);
     static void Create(NextHopTable *table, const Interface *intf,
@@ -685,6 +706,7 @@ public:
 private:
     InterfaceRef interface_;
     DISALLOW_COPY_AND_ASSIGN(ReceiveNH);
+    bool _ipv6_flag;
 };
 
 /////////////////////////////////////////////////////////////////////////////

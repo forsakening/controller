@@ -1004,7 +1004,17 @@ bool ReceiveRoute::AddChangePathExtended(Agent *agent, AgentPath *path,
     NextHop *nh = NULL;
 
     //TODO check if it needs to know table type
-    ReceiveNHKey key(intf_->Clone(), policy_);
+    //zx-ipv6
+    bool _ipv6 = false;
+    boost::system::error_code ec;
+    Ip4Address ip4;
+    int plen ;
+    ec = Ip4PrefixParse(rt->ToString(), &ip4, &plen);
+    if (ec.value() != 0) {
+        _ipv6 = true;
+    }
+        
+    ReceiveNHKey key(intf_->Clone(), policy_, _ipv6);
     nh = static_cast<NextHop *>(agent->nexthop_table()->FindActiveEntry(&key));
     path->set_unresolved(false);
 

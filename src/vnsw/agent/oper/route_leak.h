@@ -55,7 +55,9 @@ private:
     //VRF to which routes have to be mirrored
     VrfEntryRef dest_vrf_;
     DBTableBase::ListenerId route_listener_id_;
+    DBTableBase::ListenerId route_listener_id_v6_;
     DBTable::DBTableWalkRef walk_ref_;
+    DBTable::DBTableWalkRef walk_ref_v6_;
     bool deleted_;
 };
 
