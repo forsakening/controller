@@ -82,7 +82,7 @@ VmInterfaceConfigData::VmInterfaceConfigData(Agent *agent, IFMapNode *node) :
     bridge_domain_list_(),
     device_type_(VmInterface::DEVICE_TYPE_INVALID),
     vmi_type_(VmInterface::VMI_TYPE_INVALID),
-    physical_interface_(""), parent_vmi_(), subnet_(0), subnet_plen_(0),
+    physical_interface_(""), parent_vmi_(), subnet_(0), subnet_plen_(0), v6subnet_(), v6subnet_plen_(0),
     rx_vlan_id_(VmInterface::kInvalidVlanId),
     tx_vlan_id_(VmInterface::kInvalidVlanId),
     logical_interface_(nil_uuid()), qos_inbound_(-1), qos_outbound_(-1),
@@ -213,7 +213,11 @@ void VmInterfaceConfigData::CopyVhostData(const Agent *agent) {
         //Add resolve route
         subnet_ = agent->params()->vhost_addr();
         subnet_plen_ = agent->params()->vhost_plen();
-    }
+
+        //zx-ipv6
+        v6subnet_ = agent->params()->vhost_addr_v6();
+        v6subnet_plen_ = agent->params()->vhost_plen_v6();
+    }    
 
     physical_interface_ = agent->fabric_interface_name();
 
@@ -679,6 +683,12 @@ bool VmInterface::CopyConfig(const InterfaceTable *table,
     if (subnet_ != data->subnet_ || subnet_plen_ != data->subnet_plen_) {
         subnet_ = data->subnet_;
         subnet_plen_ = data->subnet_plen_;
+    }
+
+    //zx-ipv6
+    if (v6subnet_ != data->v6subnet_ || v6subnet_plen_ != data->v6subnet_plen_) {
+        v6subnet_ = data->v6subnet_;
+        v6subnet_plen_ = data->v6subnet_plen_;
     }
 
     if (learning_enabled_ != data->learning_enabled_) {

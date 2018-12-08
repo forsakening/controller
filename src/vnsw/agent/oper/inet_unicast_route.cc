@@ -1229,7 +1229,7 @@ InetUnicastAgentRouteTable::CheckAndAddArpReq(const string &vrf_name,
 
 void InetUnicastAgentRouteTable::AddResolveRoute(const Peer *peer,
                                                  const string &vrf_name,
-                                                 const Ip4Address &ip, 
+                                                 const IpAddress &ip, 
                                                  const uint8_t plen,
                                                  const InterfaceKey &intf,
                                                  const uint32_t label,
@@ -1245,7 +1245,11 @@ void InetUnicastAgentRouteTable::AddResolveRoute(const Peer *peer,
     req.key.reset(new InetUnicastRouteKey(peer, vrf_name, ip,
                                           plen));
     req.data.reset(new ResolveRoute(&intf, policy, label, vn_name, sg_list, tag_list));
-    Inet4UnicastTableEnqueue(agent, &req);
+
+    if (ip.is_v4())
+        Inet4UnicastTableEnqueue(agent, &req);
+    else
+        Inet6UnicastTableEnqueue(agent, vrf_name, &req);
 }
 
 // Create Route for a interface NH.

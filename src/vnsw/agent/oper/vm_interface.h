@@ -301,6 +301,10 @@ struct ResolveRouteState : public VmInterfaceState {
     mutable const VrfEntry *vrf_;
     mutable Ip4Address subnet_;
     mutable uint8_t plen_;
+
+    //zx-ipv6
+    mutable Ip6Address v6subnet_;
+    mutable uint8_t v6plen_;
 };
 
 struct VmiRouteState : public VmInterfaceState {
@@ -1187,6 +1191,11 @@ public:
 
     const Ip4Address& subnet() const { return subnet_;}
     const uint8_t subnet_plen() const { return subnet_plen_;}
+
+    //zx-ipv6
+    const Ip6Address& v6subnet() const { return v6subnet_;}
+    const uint8_t v6subnet_plen() const { return v6subnet_plen_;}
+    
     const MacAddress& GetVifMac(const Agent*) const;
     const boost::uuids::uuid &logical_interface() const {
         return logical_interface_;
@@ -1528,6 +1537,11 @@ private:
     uint8_t configurer_;
     Ip4Address subnet_;
     uint8_t subnet_plen_;
+
+    //zx-ipv6
+    Ip6Address v6subnet_;
+    uint8_t v6subnet_plen_;
+    
     int ethernet_tag_;
     // Logical interface uuid to which the interface belongs
     boost::uuids::uuid logical_interface_;
@@ -1735,6 +1749,10 @@ struct VmInterfaceConfigData : public VmInterfaceData {
     boost::uuids::uuid parent_vmi_;
     Ip4Address subnet_;
     uint8_t subnet_plen_;
+    //zx-ipv6
+    Ip6Address v6subnet_;
+    uint8_t v6subnet_plen_;
+    
     uint16_t rx_vlan_id_;
     uint16_t tx_vlan_id_;
     boost::uuids::uuid logical_interface_;

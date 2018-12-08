@@ -93,7 +93,7 @@ bool VmInterface::NeedDevice() const {
     if (device_type_ == VM_VLAN_ON_VMI)
         ret = false;
 
-    if (vmi_type_ != VHOST && subnet_.is_unspecified() == false) {
+    if (vmi_type_ != VHOST && (subnet_.is_unspecified() == false && v6subnet_.is_unspecified() == false)) {
         ret = false;
     }
 

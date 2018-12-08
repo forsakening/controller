@@ -265,7 +265,7 @@ public:
                          const SecurityGroupList &sg_list,
                          const TagList &tag_list);
     static void AddResolveRoute(const Peer *peer,
-                                const string &vrf_name, const Ip4Address &ip,
+                                const string &vrf_name, const IpAddress &ip,
                                 const uint8_t plen,
                                 const InterfaceKey &intf_key,
                                 const uint32_t label, bool policy,

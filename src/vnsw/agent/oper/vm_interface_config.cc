@@ -317,6 +317,7 @@ static void BuildResolveRoute(VmInterfaceConfigData *data, IFMapNode *node) {
     assert(entry);
     Ip4Address ip;
     boost::system::error_code ec;
+    //zx-ipv6 TODO
     ip = Ip4Address::from_string(entry->ip_prefix().ip_prefix, ec);
     if (ec.value() == 0) {
         data->subnet_ = ip;

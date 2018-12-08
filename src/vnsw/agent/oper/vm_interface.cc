@@ -65,7 +65,7 @@ VmInterface::VmInterface(const boost::uuids::uuid &uuid,
     vrf_assign_rule_list_(), vm_ip_service_addr_(0),
     device_type_(VmInterface::DEVICE_TYPE_INVALID),
     vmi_type_(VmInterface::VMI_TYPE_INVALID),
-    configurer_(0), subnet_(0), subnet_plen_(0), ethernet_tag_(0),
+    configurer_(0), subnet_(0), subnet_plen_(0), v6subnet_(), v6subnet_plen_(0), ethernet_tag_(0),
     logical_interface_(nil_uuid()), nova_ip_addr_(0), nova_ip6_addr_(),
     qos_inbound_(-1), qos_outbound_(-1), qos_in_burst_(DEF_QOS_BW_BURST), qos_out_burst_(DEF_QOS_BW_BURST),
     fip_inbound_(-1), fip_outbound_(-1), fip_in_burst_(DEF_QOS_BW_BURST), fip_out_burst_(DEF_QOS_BW_BURST), fip_dscp_(0),
@@ -114,7 +114,7 @@ VmInterface::VmInterface(const boost::uuids::uuid &uuid,
     instance_ipv4_list_(true), instance_ipv6_list_(false), fat_flow_list_(),
     vrf_assign_rule_list_(), device_type_(device_type),
     vmi_type_(vmi_type), configurer_(0), subnet_(0),
-    subnet_plen_(0), ethernet_tag_(0), logical_interface_(nil_uuid()),
+    subnet_plen_(0), v6subnet_(), v6subnet_plen_(0), ethernet_tag_(0), logical_interface_(nil_uuid()),
     nova_ip_addr_(0), nova_ip6_addr_(), qos_inbound_(-1), qos_outbound_(-1), qos_in_burst_(DEF_QOS_BW_BURST),
     qos_out_burst_(DEF_QOS_BW_BURST), fip_inbound_(-1), fip_outbound_(-1),
     fip_in_burst_(DEF_QOS_BW_BURST), fip_out_burst_(DEF_QOS_BW_BURST), fip_dscp_(0), qos_dscp_(KDefDscp), mtu_(kDefMtu), dhcp_addr_(0), metadata_ip_map_(),
@@ -1074,7 +1074,7 @@ Ip4Address VmInterface::mdata_ip_addr() const {
 // ResolveRoute Attribute Routines
 ////////////////////////////////////////////////////////////////////////////
 ResolveRouteState::ResolveRouteState() :
-    VmInterfaceState(), vrf_(NULL), subnet_(), plen_(0) {
+    VmInterfaceState(), vrf_(NULL), subnet_(), plen_(0), v6subnet_(), v6plen_(0){
 }
 
 ResolveRouteState::~ResolveRouteState() {
@@ -1084,6 +1084,8 @@ void ResolveRouteState::Copy(const Agent *agent, const VmInterface *vmi) const {
     vrf_ = vmi->forwarding_vrf();
     subnet_ = vmi->subnet();
     plen_ = vmi->subnet_plen();
+    v6subnet_ = vmi->v6subnet();
+    v6plen_ = vmi->v6subnet_plen();
 }
 
 VmInterfaceState::Op ResolveRouteState::GetOpL3(const Agent *agent,
@@ -1092,7 +1094,7 @@ VmInterfaceState::Op ResolveRouteState::GetOpL3(const Agent *agent,
         return VmInterfaceState::DEL;
 
     if (vrf_ != vmi->forwarding_vrf() || subnet_ != vmi->subnet() ||
-        plen_ != vmi->subnet_plen())
+        plen_ != vmi->subnet_plen() || v6subnet_ != vmi->v6subnet() || v6plen_ != vmi->v6subnet_plen())
         return VmInterfaceState::DEL_ADD;
         
     return VmInterfaceState::ADD;
@@ -1103,11 +1105,12 @@ bool ResolveRouteState::DeleteL3(const Agent *agent, VmInterface *vmi) const {
         return false;
 
     vmi->DeleteRoute(vrf_->GetName(), subnet_, plen_);
+    vmi->DeleteRoute(vrf_->GetName(), v6subnet_, v6plen_);
     return true;
 }
 
 bool ResolveRouteState::AddL3(const Agent *agent, VmInterface *vmi) const {
-    if (vrf_ == NULL || subnet_.is_unspecified())
+    if (vrf_ == NULL || (subnet_.is_unspecified() && v6subnet_.is_unspecified()))
         return false;
 
     if (vmi->vmi_type() != VmInterface::VHOST) {
@@ -1133,11 +1136,22 @@ bool ResolveRouteState::AddL3(const Agent *agent, VmInterface *vmi) const {
     }
 
     VmInterfaceKey key(AgentKey::ADD_DEL_CHANGE, vmi->GetUuid(), vmi->name());
-    InetUnicastAgentRouteTable::AddResolveRoute
-        (vmi->peer(), vrf_->GetName(),
-         Address::GetIp4SubnetAddress(subnet_, plen_), plen_, key,
-         vrf_->table_label(), policy, vn_name,
-         sg_id_list, tag_id_list);
+
+    //zx-ipv6
+    //Add both ipv4 and ipv6 resolve route table
+    if (!subnet_.is_unspecified())
+        InetUnicastAgentRouteTable::AddResolveRoute
+            (vmi->peer(), vrf_->GetName(),
+             Address::GetIp4SubnetAddress(subnet_, plen_), plen_, key,
+             vrf_->table_label(), policy, vn_name,
+             sg_id_list, tag_id_list);
+
+    if (!v6subnet_.is_unspecified())
+        InetUnicastAgentRouteTable::AddResolveRoute
+            (vmi->peer(), vrf_->GetName(),
+             Address::GetIp6SubnetAddress(v6subnet_, v6plen_), v6plen_, key,
+             vrf_->table_label(), policy, vn_name,
+             sg_id_list, tag_id_list);
     return true;
 }
 

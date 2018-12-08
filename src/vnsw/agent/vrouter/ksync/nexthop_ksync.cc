@@ -1307,6 +1307,8 @@ void NHKSyncEntry::SetEncap(InterfaceKSyncEntry *if_ksync,
         encap.push_back((vlan_tag_ & 0xFF00) >> 8);
         encap.push_back(vlan_tag_ & 0xFF);
     }
+
+    //zx-ipv6 TODO
     /* Proto encode in Network byte order */
     encap.push_back(0x08);
     encap.push_back(0x00);
