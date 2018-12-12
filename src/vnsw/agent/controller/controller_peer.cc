@@ -1212,7 +1212,7 @@ void AgentXmppChannel::ReceiveBgpMessage(std::auto_ptr<XmlBase> impl) {
         return;
     }
     if (atoi(af) == BgpAf::L2Vpn && atoi(safi) == BgpAf::Enet) {
-        ReceiveEvpnUpdate(pugi);
+        //ReceiveEvpnUpdate(pugi);
         return;
     }
     if (atoi(safi) == BgpAf::Unicast) {
@@ -1716,23 +1716,26 @@ bool AgentXmppChannel::ControllerSendV4V6UnicastRouteCommon(AgentRoute *route,
     //Build the DOM tree
     auto_ptr<XmlBase> impl(XmppStanza::AllocXmppXmlImpl());
     XmlPugi *pugi = reinterpret_cast<XmlPugi *>(impl.get());
+    autogen::NextHopType nh;
+    stringstream rstr;
 
     if (type == Agent::INET4_UNICAST) {
         item.entry.nlri.af = BgpAf::IPv4;
+        string rtr(agent_->router_id().to_string());
+        nh.af = BgpAf::IPv4;
+        nh.address = rtr;
     } else {
         item.entry.nlri.af = BgpAf::IPv6; 
+        string rtr(agent_->v6router_id().to_string());
+        nh.af = BgpAf::IPv6;
+        nh.address = rtr;
     } 
     item.entry.nlri.safi = BgpAf::Unicast;
-    stringstream rstr;
     rstr << route->ToString();
     item.entry.nlri.address = rstr.str();
 
-    string rtr(agent_->router_id().to_string());
-
     PopulateEcmpHashFieldsToUse(item, ecmp_load_balance);
-    autogen::NextHopType nh;
-    nh.af = BgpAf::IPv4;
-    nh.address = rtr;
+
     nh.label = mpls_label;
 #if 0
     LOG(DEBUG,"bmap lable SendV4V6UnicastRouteCommon "<<bmap<<" "<<mpls_label<<" addr"<<rstr.str()<<endl);
@@ -1840,7 +1843,7 @@ bool AgentXmppChannel::ControllerSendV4V6UnicastRouteCommon(AgentRoute *route,
 bool AgentXmppChannel::BuildTorMulticastMessage(EnetItemType &item,
                                                 stringstream &node_id,
                                                 AgentRoute *route,
-                                                const Ip4Address *nh_ip,
+                                                const IpAddress *nh_ip,
                                                 const std::string &vn,
                                                 const SecurityGroupList *sg_list,
                                                 const TagList *tag_list,
@@ -1935,7 +1938,7 @@ bool AgentXmppChannel::BuildTorMulticastMessage(EnetItemType &item,
 bool AgentXmppChannel::BuildEvpnMulticastMessage(EnetItemType &item,
                                                  stringstream &node_id,
                                                  AgentRoute *route,
-                                                 const Ip4Address *nh_ip,
+                                                 const IpAddress *nh_ip,
                                                  const std::string &vn,
                                                  const SecurityGroupList *sg_list,
                                                  const TagList *tag_list,
@@ -2028,7 +2031,7 @@ bool AgentXmppChannel::BuildEvpnMulticastMessage(EnetItemType &item,
 bool AgentXmppChannel::BuildEvpnUnicastMessage(EnetItemType &item,
                                                stringstream &node_id,
                                                AgentRoute *route,
-                                               const Ip4Address *nh_ip,
+                                               const IpAddress *nh_ip,
                                                const std::string &vn,
                                                const SecurityGroupList *sg_list,
                                                const TagList *tag_list,
@@ -2068,7 +2071,10 @@ bool AgentXmppChannel::BuildEvpnUnicastMessage(EnetItemType &item,
     }
 
     autogen::EnetNextHopType nh;
+    if (nh_ip->is_v4())
     nh.af = Address::INET;
+    else
+        nh.af = Address::INET6;
     nh.address = nh_ip->to_string();
     nh.label = label;
     TunnelType::Type tunnel_type = TunnelType::ComputeType(tunnel_bmap);
@@ -2180,7 +2186,7 @@ bool AgentXmppChannel::BuildAndSendEvpnDom(EnetItemType &item,
 }
 
 bool AgentXmppChannel::ControllerSendEvpnRouteCommon(AgentRoute *route,
-                                                     const Ip4Address *nh_ip,
+                                                     const IpAddress *nh_ip,
                                                      std::string vn,
                                                      const SecurityGroupList *sg_list,
                                                      const TagList *tag_list,
@@ -2340,7 +2346,7 @@ bool AgentXmppChannel::ControllerSendMcastRouteCommon(AgentRoute *route,
 
 bool AgentXmppChannel::ControllerSendEvpnRouteAdd(AgentXmppChannel *peer,
                                                   AgentRoute *route,
-                                                  const Ip4Address *nh_ip,
+                                                  const IpAddress *nh_ip,
                                                   std::string vn,
                                                   uint32_t label,
                                                   uint32_t tunnel_bmap,
@@ -2382,7 +2388,8 @@ bool AgentXmppChannel::ControllerSendEvpnRouteDelete(AgentXmppChannel *peer,
     CONTROLLER_INFO_TRACE(RouteExport, peer->GetBgpPeerName(),
                      route->vrf()->GetName(),
                      route->ToString(), false, label);
-    Ip4Address nh_ip = Ip4Address(0);
+    //Ip4Address nh_ip = Ip4Address(0);
+    IpAddress nh_ip = IpAddress();
     return (peer->ControllerSendEvpnRouteCommon(route,
                                                 &nh_ip,
                                                 vn,
@@ -2399,7 +2406,7 @@ bool AgentXmppChannel::ControllerSendEvpnRouteDelete(AgentXmppChannel *peer,
 
 bool AgentXmppChannel::ControllerSendRouteAdd(AgentXmppChannel *peer,
                                               AgentRoute *route,
-                                              const Ip4Address *nexthop_ip,
+                                              const IpAddress *nexthop_ip,
                                               const VnListType &vn_list,
                                               uint32_t label,
                                               TunnelType::TypeBmap bmap,
@@ -2470,7 +2477,8 @@ bool AgentXmppChannel::ControllerSendRouteDelete(AgentXmppChannel *peer,
                                                        ecmp_load_balance);
     }
     if (type == Agent::EVPN) {
-        Ip4Address nh_ip(0);
+        //Ip4Address nh_ip(0);
+        IpAddress nh_ip = IpAddress();
         std::string vn;
         if (vn_list.size())
             vn = *vn_list.begin();

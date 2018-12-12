@@ -75,7 +75,9 @@ public:
     virtual bool Compare(const Peer *rhs) const {return false;}
     // Should we export path from this peer to controller?
     virtual bool export_to_controller() const {return export_to_controller_;}
-    virtual const Ip4Address *NexthopIp(Agent *agent,
+    virtual const IpAddress *NexthopIp(Agent *agent,
+                                        const AgentPath *path) const;
+    virtual const IpAddress *NexthopIp6(Agent *agent,
                                         const AgentPath *path) const;
 
     const std::string &GetName() const { return name_; }

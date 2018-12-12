@@ -237,6 +237,7 @@ void RouteExport::UnicastNotify(AgentXmppChannel *bgp_xmpp_peer,
             state->Update(route, path, type);
             VnListType vn_list;
             vn_list.insert(state->vn_);
+            if (path->NexthopIp(table->agent())->to_v4().to_string() != "0.0.0.0"){
             state->exported_ = 
                 AgentXmppChannel::ControllerSendRouteAdd(bgp_xmpp_peer, 
                         static_cast<AgentRoute * >(route),
@@ -245,6 +246,19 @@ void RouteExport::UnicastNotify(AgentXmppChannel *bgp_xmpp_peer,
                         &path->sg_list(), &path->tag_list(), &path->communities(),
                         type, state->path_preference_,
                         state->ecmp_load_balance_);
+        }
+            //guwei
+            if (path->NexthopIp6(table->agent())->to_v6().to_string() != "::"){
+            //IpAddress ipv6 = IpAddress::from_string("333::2");
+                state->exported_ = 
+                AgentXmppChannel::ControllerSendRouteAdd(bgp_xmpp_peer, 
+                        static_cast<AgentRoute * >(route),
+                        path->NexthopIp6(table->agent()), vn_list,
+                        state->label_, path->GetTunnelBmap(),
+                        &path->sg_list(), &path->tag_list(), &path->communities(),
+                        type, state->path_preference_,
+                        state->ecmp_load_balance_);
+            }
         }
     } else {
         if (state->exported_ == true) {
@@ -513,6 +527,7 @@ void RouteExport::SubscribeIngressReplication(Agent *agent,
         }
         SecurityGroupList sg;
         TagList tag;
+        if (active_path->NexthopIp(agent)->to_v4().to_string() != "0.0.0.0"){
         state->ingress_replication_exported_ =
             AgentXmppChannel::ControllerSendEvpnRouteAdd
             (bgp_xmpp_peer, route,
@@ -521,6 +536,20 @@ void RouteExport::SubscribeIngressReplication(Agent *agent,
              TunnelType::GetTunnelBmap(state->tunnel_type_),
              &sg, &tag, NULL, state->destination_,
              state->source_, PathPreference());
+    }
+        /*guwei*/
+        if (active_path->NexthopIp6(agent)->to_v6().to_string() != "::"){
+        //IpAddress ipv6 = IpAddress::from_string("333::2");
+            state->ingress_replication_exported_ =
+            AgentXmppChannel::ControllerSendEvpnRouteAdd
+            (bgp_xmpp_peer, route,
+             //active_path->NexthopIp(agent),
+             active_path->NexthopIp6(agent),
+             route->dest_vn_name(), state->label_,
+             TunnelType::GetTunnelBmap(state->tunnel_type_),
+             &sg, &tag, NULL, state->destination_,
+             state->source_, PathPreference());
+        }
     }
 }
 

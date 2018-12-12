@@ -604,9 +604,9 @@ public:
         v6_gateway_id_ = addr;
     }
 
-    Ip4Address router_id() const {return router_id_;}
-    const Ip4Address *router_ip_ptr() const {return &router_id_;}
-    void set_router_id(const Ip4Address &addr) {
+    Ip4Address router_id() const {return router_id_.to_v4();}
+    const IpAddress *router_ip_ptr() const {return &router_id_;}
+    void set_router_id(const IpAddress &addr) {
         router_id_ = addr;
         set_router_id_configured(true);
     }
@@ -616,9 +616,9 @@ public:
     }
 
     //v6
-    Ip6Address v6router_id() const {return v6_router_id_;}
-    const Ip6Address *v6router_ip_ptr() const {return &v6_router_id_;}
-    void set_v6router_id(const Ip6Address &addr) {
+    Ip6Address v6router_id() const {return v6_router_id_.to_v6();}
+    const IpAddress *v6router_ip_ptr() const {return &v6_router_id_;}
+    void set_v6router_id(const IpAddress &addr) {
         v6_router_id_ = addr;
         set_v6router_id_configured(true);
     }
@@ -1338,11 +1338,11 @@ private:
     // Interface Mirror config table
     IntfMirrorCfgTable *intf_mirror_cfg_table_;
     
-    Ip4Address router_id_;
+    IpAddress router_id_;
     uint32_t prefix_len_;
     Ip4Address gateway_id_;
 
-    Ip6Address v6_router_id_;
+    IpAddress v6_router_id_;
     uint32_t v6_prefix_len_;
     Ip6Address v6_gateway_id_;
 

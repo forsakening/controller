@@ -1617,12 +1617,21 @@ bool AgentPath::ChangeCompositeNH(Agent *agent,
     return false;
 }
 
-const Ip4Address *AgentPath::NexthopIp(Agent *agent) const {
+
+const IpAddress *AgentPath::NexthopIp(Agent *agent) const {
     if (peer_ == NULL) {
         return agent->router_ip_ptr();
     }
 
     return peer_->NexthopIp(agent, this);
+}
+
+const IpAddress *AgentPath::NexthopIp6(Agent *agent) const {
+    if (peer_ == NULL) {
+        return agent->v6router_ip_ptr();
+    }
+
+    return peer_->NexthopIp6(agent, this);
 }
 
 MacVmBindingPath::MacVmBindingPath(const Peer *peer) :

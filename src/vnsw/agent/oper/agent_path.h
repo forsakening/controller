@@ -282,7 +282,8 @@ public:
                             bool &comp_nh_policy);
     bool ChangeCompositeNH(Agent *agent, CompositeNHKey *nh);
     // Get nexthop-ip address to be used for path
-    const Ip4Address *NexthopIp(Agent *agent) const;
+    const IpAddress *NexthopIp(Agent *agent) const;
+    const IpAddress *NexthopIp6(Agent *agent) const;
 
     MacAddress arp_mac() const {return arp_mac_;}
     void set_arp_mac(const MacAddress &mac) {

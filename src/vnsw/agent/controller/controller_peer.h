@@ -68,7 +68,7 @@ public:
     //Add to control-node
     static bool ControllerSendRouteAdd(AgentXmppChannel *peer,
                                        AgentRoute *route,
-                                       const Ip4Address *nexthop_ip,
+                                       const IpAddress *nexthop_ip,
                                        const VnListType &vn_list,
                                        uint32_t label,
                                        uint32_t tunnel_bmap,
@@ -80,7 +80,7 @@ public:
                                        const EcmpLoadBalance &ecmp_load_balance);
     static bool ControllerSendEvpnRouteAdd(AgentXmppChannel *peer,
                                            AgentRoute *route,
-                                           const Ip4Address *nexthop_ip,
+                                           const IpAddress *nexthop_ip,
                                            std::string vn,
                                            uint32_t mpls_label,
                                            uint32_t tunnel_bmap,
@@ -147,7 +147,7 @@ public:
     std::string GetBgpPeerName() const;
     void UpdateConnectionInfo(xmps::PeerState state);
     bool ControllerSendEvpnRouteCommon(AgentRoute *route,
-                                       const Ip4Address *nexthop_ip,
+                                       const IpAddress *nexthop_ip,
                                        std::string vn,
                                        const SecurityGroupList *sg_list,
                                        const TagList *tag_list,
@@ -163,7 +163,7 @@ public:
     bool BuildEvpnMulticastMessage(autogen::EnetItemType &item,
                                    std::stringstream &node_id,
                                    AgentRoute *route,
-                                   const Ip4Address *nh_ip,
+                                   const IpAddress *nh_ip,
                                    const std::string &vn,
                                    const SecurityGroupList *sg_list,
                                    const TagList *tag_list,
@@ -234,7 +234,7 @@ private:
     bool BuildTorMulticastMessage(autogen::EnetItemType &item,
                                   std::stringstream &node_id,
                                   AgentRoute *route,
-                                  const Ip4Address *nh_ip,
+                                  const IpAddress *nh_ip,
                                   const std::string &vn,
                                   const SecurityGroupList *sg_list,
                                   const TagList *tag_list,
@@ -247,7 +247,7 @@ private:
     bool BuildEvpnUnicastMessage(autogen::EnetItemType &item,
                                  std::stringstream &node_id,
                                  AgentRoute *route,
-                                 const Ip4Address *nh_ip,
+                                 const IpAddress *nh_ip,
                                  const std::string &vn,
                                  const SecurityGroupList *sg_list,
                                  const TagList *tag_list,
