@@ -27,6 +27,7 @@ public:
 
 private:
     bool CheckPacket();
+    bool FabricIcmpv6Handle();
     uint16_t FillRouterAdvertisement(uint8_t *buf, uint32_t ifindex,
                                      uint8_t *src, uint8_t *dest,
                                      const Ip6Address &prefix, uint8_t plen);

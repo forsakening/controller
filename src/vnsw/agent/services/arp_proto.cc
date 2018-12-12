@@ -316,7 +316,7 @@ void ArpDBState::UpdateArpRoutes(const InetUnicastRouteEntry *rt) {
 
     while (start_iter != vrf_state_->arp_proto->arp_cache().end() &&
            start_iter->first.vrf == rt->vrf() &&
-           IsIp4SubnetMember(Ip4Address(start_iter->first.ip),
+           IsIp4SubnetMember(Ip4Address(start_iter->first.ip.to_v4()),
                              rt->addr().to_v4(), plen)) {
         start_iter->second->Resync(policy_, vn_list_, sg_list_, tag_list_);
         start_iter++;
@@ -334,7 +334,7 @@ void ArpDBState::Delete(const InetUnicastRouteEntry *rt) {
 
     while (start_iter != vrf_state_->arp_proto->arp_cache().end() &&
            start_iter->first.vrf == rt->vrf() &&
-           IsIp4SubnetMember(Ip4Address(start_iter->first.ip),
+           IsIp4SubnetMember(Ip4Address(start_iter->first.ip.to_v4()),
                              rt->addr().to_v4(), plen)) {
         ArpProto::ArpIterator tmp = start_iter++;
         if (tmp->second->DeleteArpRoute()) {
@@ -692,11 +692,15 @@ void ArpProto::NextHopNotify(DBEntryBase *entry) {
     switch(nh->GetType()) {
     case NextHop::ARP: {
         ArpNH *arp_nh = (static_cast<ArpNH *>(nh));
+        //zx-ipv6 v6 arp not do the flowing process
+        if (arp_nh->GetIp()->is_v6())
+            break;
+        
         if (arp_nh->IsDeleted()) {
-            SendArpIpc(ArpProto::ARP_DELETE, arp_nh->GetIp()->to_ulong(),
+            SendArpIpc(ArpProto::ARP_DELETE, arp_nh->GetIp()->to_v4().to_ulong(),
                        arp_nh->GetVrf(), arp_nh->GetInterface()); 
         } else if (arp_nh->IsValid() == false && arp_nh->GetInterface()) {
-            SendArpIpc(ArpProto::ARP_RESOLVE, arp_nh->GetIp()->to_ulong(),
+            SendArpIpc(ArpProto::ARP_RESOLVE, arp_nh->GetIp()->to_v4().to_ulong(),
                        arp_nh->GetVrf(), arp_nh->GetInterface()); 
         }
         break;

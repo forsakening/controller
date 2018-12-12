@@ -1310,8 +1310,16 @@ void NHKSyncEntry::SetEncap(InterfaceKSyncEntry *if_ksync,
 
     //zx-ipv6 TODO
     /* Proto encode in Network byte order */
-    encap.push_back(0x08);
-    encap.push_back(0x00);
+    if (ipv6_flag_)
+    {
+        encap.push_back(0x86);
+        encap.push_back(0xdd);
+    }
+    else
+    {
+        encap.push_back(0x08);
+        encap.push_back(0x00);
+    }   
 }
 
 uint8_t NHKSyncEntry::SetEcmpFieldsToUse() {

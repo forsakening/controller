@@ -95,7 +95,7 @@ bool ArpEntry::RetryExpiry() {
         retry_count_++;
         SendArpRequest();
     } else {
-        Ip4Address ip(key_.ip);
+        IpAddress ip(key_.ip);
         ARP_TRACE(Trace, "Retry exceeded", ip.to_string(), 
                   key_.vrf->GetName(), "");
         arp_proto->IncrementStatsMaxRetries();
@@ -112,7 +112,7 @@ bool ArpEntry::RetryExpiry() {
 }
 
 bool ArpEntry::AgingExpiry() {
-    Ip4Address ip(key_.ip);
+    IpAddress ip(key_.ip);
     const string& vrf_name = key_.vrf->GetName();
     ArpNHKey nh_key(vrf_name, ip, false);
     ArpNH *arp_nh = static_cast<ArpNH *>(handler_->agent()->nexthop_table()->
@@ -136,9 +136,9 @@ void ArpEntry::SendGratuitousArp() {
             MacAddress smac = vmi->GetVifMac(agent);
             if (key_.vrf && key_.vrf->vn()) {
                 IpAddress gw_ip = key_.vrf->vn()->GetGatewayFromIpam
-                    (Ip4Address(key_.ip));
+                    (IpAddress(key_.ip));
                 IpAddress dns_ip = key_.vrf->vn()->GetDnsFromIpam
-                    (Ip4Address(key_.ip));
+                    (IpAddress(key_.ip));
                 if (!gw_ip.is_unspecified() && gw_ip.is_v4())  {
                     handler_->SendArp(ARPOP_REQUEST, smac,
                                       gw_ip.to_v4().to_ulong(),
@@ -187,6 +187,12 @@ void ArpEntry::StartTimer(uint32_t timeout, uint32_t mtype) {
 
 void ArpEntry::SendArpRequest() {
     assert(!IsDerived());
+
+    //zx-ipv6 
+    //ICMPv6 reuse this method, so skip this
+    if (key_.ip.is_v6())
+        return;
+    
     Agent *agent = handler_->agent();
     ArpProto *arp_proto = agent->GetArpProto();
     uint32_t vrf_id = VrfEntry::kInvalidIndex;
@@ -196,7 +202,7 @@ void ArpEntry::SendArpRequest() {
     if (interface_->type() == Interface::VM_INTERFACE) {
         const VmInterface *vmi =
             static_cast<const VmInterface *>(interface_.get());
-        ip = vmi->GetServiceIp(Ip4Address(key_.ip)).to_v4();
+        ip = vmi->GetServiceIp(IpAddress(key_.ip)).to_v4();
         if (vmi->vmi_type() == VmInterface::VHOST) {
             ip = agent->router_id();
         }
@@ -217,7 +223,7 @@ void ArpEntry::SendArpRequest() {
 
     if (vrf_id != VrfEntry::kInvalidIndex) {
         handler_->SendArp(ARPOP_REQUEST, smac, ip.to_ulong(),
-                          MacAddress(), MacAddress::BroadcastMac(), key_.ip, intf_id, vrf_id);
+                          MacAddress(), MacAddress::BroadcastMac(), key_.ip.to_v4().to_ulong(), intf_id, vrf_id);
     }
 
     StartTimer(arp_proto->retry_timeout(), ArpProto::RETRY_TIMER_EXPIRED);
@@ -230,7 +236,7 @@ void ArpEntry::AddArpRoute(bool resolved) {
         return;
     }
 
-    Ip4Address ip(key_.ip);
+    IpAddress ip(key_.ip);
     const string& vrf_name = key_.vrf->GetName();
     ArpNHKey nh_key(nh_vrf_->GetName(), ip, false);
     ArpNH *arp_nh = static_cast<ArpNH *>(handler_->agent()->nexthop_table()->
@@ -279,9 +285,14 @@ void ArpEntry::AddArpRoute(bool resolved) {
         }
     }
 
+    uint8_t plen = 32; 
+    if (ip.is_v6())
+        plen = 128;
+
+    //zx-ipv6 TODO ipv4 and v6 now use one fabric_inet4_unicast_table
     handler_->agent()->fabric_inet4_unicast_table()->ArpRoute(
                        DBRequest::DB_ENTRY_ADD_CHANGE, vrf_name, ip, mac,
-                       nh_vrf_->GetName(), *itf, resolved, 32, policy,
+                       nh_vrf_->GetName(), *itf, resolved, plen, policy,
                        vn_list, sg, tag);
 }
 
@@ -290,7 +301,7 @@ bool ArpEntry::DeleteArpRoute() {
         return true;
     }
 
-    Ip4Address ip(key_.ip);
+    IpAddress ip(key_.ip);
     const string& vrf_name = key_.vrf->GetName();
     ArpNHKey nh_key(nh_vrf_->GetName(), ip, false);
     ArpNH *arp_nh = static_cast<ArpNH *>(handler_->agent()->nexthop_table()->
@@ -307,9 +318,14 @@ bool ArpEntry::DeleteArpRoute() {
         return true;
     }
 
+    uint8_t plen = 32; 
+    if (ip.is_v6())
+        plen = 128;
+
+    //zx-ipv6 TODO ipv4 and v6 now use one fabric_inet4_unicast_table
     handler_->agent()->fabric_inet4_unicast_table()->ArpRoute(
                        DBRequest::DB_ENTRY_DELETE, vrf_name, ip, mac, nh_vrf_->GetName(),
-                       *interface_, false, 32, false, Agent::NullStringList(),
+                       *interface_, false, plen, false, Agent::NullStringList(),
                        SecurityGroupList(), TagList());
     return false;
 }
@@ -317,9 +333,15 @@ bool ArpEntry::DeleteArpRoute() {
 void ArpEntry::Resync(bool policy, const VnListType &vnlist,
                       const SecurityGroupList &sg,
                       const TagList &tag) {
-    Ip4Address ip(key_.ip);
+    IpAddress ip(key_.ip);
+
+    uint8_t plen = 32; 
+    if (ip.is_v6())
+        plen = 128;
+
+    //zx-ipv6 TODO ipv4 and v6 now use one fabric_inet4_unicast_table
     handler_->agent()->fabric_inet4_unicast_table()->ArpRoute(
                        DBRequest::DB_ENTRY_ADD_CHANGE, key_.vrf->GetName(), ip,
                        mac_address_, nh_vrf_->GetName(), *interface_, IsResolved(),
-                       32, policy, vnlist, sg, tag);
+                       plen, policy, vnlist, sg, tag);
 }

@@ -6,15 +6,22 @@
 #define vnsw_agent_arp_entry_hpp
 
 struct ArpKey {
-    ArpKey(in_addr_t addr, const VrfEntry *ventry) : ip(addr), vrf(ventry) {};
-    ArpKey(const ArpKey &key) : ip(key.ip), vrf(key.vrf) {};
+    ArpKey(in_addr_t addr, const VrfEntry *ventry) : vrf(ventry) {
+        Ip4Address v4(addr);
+        ip = v4;
+    };
+
+     
+    ArpKey(IpAddress addr, const VrfEntry *ventry) : ip(addr), vrf(ventry) {};
+    
     bool operator <(const ArpKey &rhs) const {
         if (vrf != rhs.vrf)
             return vrf < rhs.vrf;
+        
         return (ip < rhs.ip);
     }
 
-    in_addr_t ip;
+    IpAddress ip;
     const VrfEntry *vrf;
 };
 
@@ -31,6 +38,7 @@ public:
     ArpEntry(boost::asio::io_service &io, ArpHandler *handler,
              ArpKey &key, const VrfEntry *vrf, State state,
               const Interface *itf);
+    
     virtual ~ArpEntry();
 
     const ArpKey &key() const { return key_; }

@@ -850,7 +850,7 @@ private:
 class Inet4UnicastArpRoute : public AgentRouteData {
 public:
     Inet4UnicastArpRoute(const std::string &vrf_name,
-                         const Ip4Address &addr, bool policy,
+                         const IpAddress &addr, bool policy,
                          const VnListType &vn_list, const SecurityGroupList &sg,
                          const TagList &tag) :
         AgentRouteData(AgentRouteData::ADD_DEL_CHANGE, false, 0),
@@ -864,7 +864,7 @@ public:
     virtual std::string ToString() const {return "arp";}
 private:
     std::string vrf_name_;
-    Ip4Address addr_;
+    IpAddress addr_;
     bool policy_;
     VnListType vn_list_;
     SecurityGroupList sg_list_;

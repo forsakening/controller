@@ -625,7 +625,7 @@ private:
 class ReceiveNHKey : public NextHopKey {
 public:
     ReceiveNHKey(InterfaceKey *intf_key, bool policy) :
-        NextHopKey(NextHop::RECEIVE, policy), intf_key_(intf_key) {
+        NextHopKey(NextHop::RECEIVE, policy), intf_key_(intf_key), _v6_flag(false) {
     }
 
     ReceiveNHKey(InterfaceKey *intf_key, bool policy, bool _ipv6) :
@@ -657,7 +657,7 @@ private:
 class ReceiveNH : public NextHop {
 public:
     ReceiveNH(Interface *intf, bool policy) : 
-        NextHop(RECEIVE, true, policy), interface_(intf) { };
+        NextHop(RECEIVE, true, policy), interface_(intf), _ipv6_flag(false) { };
 
     ReceiveNH(Interface *intf, bool policy, bool ipv6) : 
         NextHop(RECEIVE, true, policy), interface_(intf), _ipv6_flag(ipv6){ };
@@ -782,7 +782,7 @@ private:
 /////////////////////////////////////////////////////////////////////////////
 class ArpNHKey : public NextHopKey {
 public:
-    ArpNHKey(const string &vrf_name, const Ip4Address &ip, bool policy) :
+    ArpNHKey(const string &vrf_name, const IpAddress &ip, bool policy) :
         NextHopKey(NextHop::ARP, policy), vrf_key_(vrf_name), dip_(ip) {
     }
     virtual ~ArpNHKey() { };
@@ -794,7 +794,7 @@ public:
 private:
     friend class ArpNH;
     VrfKey vrf_key_;
-    Ip4Address dip_;
+    IpAddress dip_;
     DISALLOW_COPY_AND_ASSIGN(ArpNHKey);
 };
 
@@ -821,7 +821,7 @@ private:
 
 class ArpNH : public NextHop {
 public:
-    ArpNH(VrfEntry *vrf, const Ip4Address &ip) :
+    ArpNH(VrfEntry *vrf, const IpAddress &ip) :
         NextHop(ARP, false, false), vrf_(vrf, this), ip_(ip), interface_(), mac_() {};
     virtual ~ArpNH() { };
 
@@ -839,7 +839,7 @@ public:
     const Interface *GetInterface() const {return interface_.get();};
     const uuid &GetIfUuid() const;
     const uint32_t vrf_id() const;
-    const Ip4Address *GetIp() const {return &ip_;};
+    const IpAddress *GetIp() const {return &ip_;};
     const VrfEntry *GetVrf() const {return vrf_.get();};
     bool GetResolveState() const {return valid_;}
     virtual bool DeleteOnZeroRefCount() const {
@@ -855,9 +855,12 @@ public:
     }
     virtual bool NeedMplsLabel() { return false; }
 
+    //zx-ipv6
+    bool ipv6_flag() const {return ip_.is_v6();}
+
 private:
     VrfEntryRef vrf_;
-    Ip4Address ip_;
+    IpAddress ip_;
     InterfaceRef interface_;
     MacAddress mac_;
     DISALLOW_COPY_AND_ASSIGN(ArpNH);

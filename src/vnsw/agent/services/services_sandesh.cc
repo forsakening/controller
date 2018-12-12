@@ -1176,7 +1176,7 @@ void ShowGratuitousArpCache::HandleRequest() const {
 bool ArpSandesh::SetArpEntry(const ArpKey &key, const ArpEntry *entry) {
     ArpCacheResp *vresp = static_cast<ArpCacheResp *>(resp_);
     ArpSandeshData data;
-    boost::asio::ip::address_v4 ip(key.ip);
+    boost::asio::ip::address ip(key.ip);
     data.set_ip(ip.to_string());
     data.set_vrf(key.vrf->GetName());
     if (entry->interface())

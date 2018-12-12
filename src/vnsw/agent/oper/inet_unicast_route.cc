@@ -1114,7 +1114,7 @@ InetUnicastAgentRouteTable::AddRemoteVmRouteReq(const Peer *peer,
  
 void
 InetUnicastAgentRouteTable::AddArpReq(const string &route_vrf_name,
-                                      const Ip4Address &ip,
+                                      const IpAddress &ip,
                                       const string &nexthop_vrf_name,
                                       const Interface *intf, bool policy,
                                       const VnListType &vn_list,
@@ -1128,17 +1128,25 @@ InetUnicastAgentRouteTable::AddArpReq(const string &route_vrf_name,
     agent->nexthop_table()->Enqueue(&nh_req);
 
     DBRequest  rt_req(DBRequest::DB_ENTRY_ADD_CHANGE);
-    rt_req.key.reset(new InetUnicastRouteKey(agent->local_peer(),
-                                              route_vrf_name, ip, 32));
-    rt_req.data.reset(new Inet4UnicastArpRoute(nexthop_vrf_name, ip, policy,
-                                               vn_list, sg_list, tag_list));
-    Inet4UnicastTableEnqueue(agent, &rt_req);
+    if (ip.is_v4()){
+        rt_req.key.reset(new InetUnicastRouteKey(agent->local_peer(),
+                                                  route_vrf_name, ip, 32));
+        rt_req.data.reset(new Inet4UnicastArpRoute(nexthop_vrf_name, ip, policy,
+                                                   vn_list, sg_list, tag_list));
+        Inet4UnicastTableEnqueue(agent, &rt_req);
+    }else {
+        rt_req.key.reset(new InetUnicastRouteKey(agent->local_peer(),
+                                                  route_vrf_name, ip, 128));
+        rt_req.data.reset(new Inet4UnicastArpRoute(nexthop_vrf_name, ip, policy,
+                                                   vn_list, sg_list, tag_list));
+        Inet6UnicastTableEnqueue(agent, route_vrf_name, &rt_req);
+    }
 }
 
 void
 InetUnicastAgentRouteTable::ArpRoute(DBRequest::DBOperation op,
                                      const string &route_vrf_name,
-                                     const Ip4Address &ip,
+                                     const IpAddress &ip,
                                      const MacAddress &mac,
                                      const string &nexthop_vrf_name,
                                      const Interface &intf,
@@ -1201,7 +1209,11 @@ InetUnicastAgentRouteTable::ArpRoute(DBRequest::DBOperation op,
 
     rt_req.key.reset(rt_key);
     rt_req.data.reset(data);
-    Inet4UnicastTableEnqueue(agent, &rt_req);
+
+    if (ip.is_v4())
+        Inet4UnicastTableEnqueue(agent, &rt_req);
+    else
+        Inet6UnicastTableEnqueue(agent, nexthop_vrf_name, &rt_req);
 }
 
 void

@@ -245,7 +245,7 @@ public:
                                   const SecurityGroupList &sg,
                                   const TagList &tag);
     static void AddArpReq(const string &route_vrf_name,
-                          const Ip4Address &ip,
+                          const IpAddress &ip,
                           const string &nh_vrf_name,
                           const Interface *intf,
                           bool policy,
@@ -254,7 +254,7 @@ public:
                           const TagList &tag_list);
     static void ArpRoute(DBRequest::DBOperation op,
                          const string &route_vrf_name,
-                         const Ip4Address &ip,
+                         const IpAddress &ip,
                          const MacAddress &mac,
                          const string &nh_vrf_name,
                          const Interface &intf,

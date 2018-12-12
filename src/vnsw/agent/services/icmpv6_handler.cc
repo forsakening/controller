@@ -17,6 +17,9 @@
 #include <oper/path_preference.h>
 #include <oper/vn.h>
 
+//zx-ipv6
+#include "services/arp_entry.h"
+
 const boost::array<uint8_t, 16> Icmpv6Handler::kPrefix =
     { {0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0xFF, 0, 0, 0} };
 const boost::array<uint8_t, 16> Icmpv6Handler::kSuffix =
@@ -38,6 +41,79 @@ Icmpv6Handler::Icmpv6Handler(Agent *agent, boost::shared_ptr<PktInfo> info,
 Icmpv6Handler::~Icmpv6Handler() {
 }
 
+//zx-ipv6
+bool Icmpv6Handler::FabricIcmpv6Handle() {
+    Icmpv6Proto *icmpv6_proto = agent()->icmpv6_proto();
+    Interface *itf =
+        agent()->interface_table()->FindInterface(GetInterfaceIndex());
+    nd_neighbor_advert *icmp = (nd_neighbor_advert *)icmp_;
+    
+    if (!CheckPacket()) {
+        return true;
+    }
+    
+    boost::array<uint8_t, 16> bytes;
+    for (int i = 0; i < 16; i++) {
+        bytes[i] = icmp->nd_na_target.s6_addr[i];
+    }
+    Ip6Address addr(bytes);
+    uint16_t offset = sizeof(nd_neighbor_advert);
+    nd_opt_hdr *opt = (nd_opt_hdr *) (((uint8_t *)icmp) + offset);
+    if (opt->nd_opt_type != ND_OPT_TARGET_LINKADDR) {
+        ICMPV6_TRACE(Trace, "Ignoring Neighbor Advert with no"
+                     "Target Link-layer address option");
+        icmpv6_proto->IncrementStatsDrop();
+        return true;
+    }
+
+    uint8_t *buf = (((uint8_t *)icmp) + offset + 2);
+    MacAddress mac(buf);
+
+    //Enqueue a request to trigger state machine
+    agent()->oper_db()->route_preference_module()->
+        EnqueueTrafficSeen(addr, 128, itf->id(),
+                           itf->vrf()->vrf_id(), mac);
+
+    //zx-ipv6 TODO
+    //Add arp nh and rt
+    //At now ,use arp procedure to handle the icmpv6 Neighbor Advertisement
+    int _ret = true;
+    ArpProto *arp_proto = agent()->GetArpProto();
+    const VrfEntry *vrf = agent()->vrf_table()->FindVrfFromId(pkt_info_->vrf);
+    ArpKey key(addr, vrf);
+    ArpEntry *entry = arp_proto->FindArpEntry(key);
+    if(entry) {
+        entry->HandleArpReply(mac);
+    } else {
+        const VrfEntry *nh_vrf = itf->vrf();
+        if (!nh_vrf || !nh_vrf->IsActive()) {
+            arp_proto->IncrementStatsInvalidVrf();
+            ARP_TRACE(Error, "ARP : Interface " + itf->name() + " has no / inactive VRF");
+            return true;
+        }
+
+        //zx-ipv6 TODO when to delete the arp_handler
+        ArpHandler* arp_handler = new ArpHandler(agent(), pkt_info_, io_);
+        entry = new ArpEntry(io_, arp_handler, key, nh_vrf, ArpEntry::INITING, itf);
+        if (arp_proto->AddArpEntry(entry) == false) {
+            delete entry;
+            delete arp_handler;
+            return true;
+        }
+        entry->HandleArpReply(mac);
+        //delete arp_handler;
+        //delete entry;
+        _ret = false; // return false means not to delete the handler
+    }
+
+    //send the ND pkt to vhost0
+    //icmp_->icmp6_cksum = Icmpv6Csum(pkt_info_->ip6->ip6_src.s6_addr,
+    //                           pkt_info_->ip6->ip6_dst.s6_addr,
+    //                           icmp_, icmp_len_);
+    //Send(1, pkt_info_->vrf, AgentHdr::TX_SWITCH, PktHandler::ICMPV6);            
+    return _ret;    
+}
+
 bool Icmpv6Handler::Run() {
     Icmpv6Proto *icmpv6_proto = agent()->icmpv6_proto();
     Interface *itf =
@@ -47,18 +123,30 @@ bool Icmpv6Handler::Run() {
         ICMPV6_TRACE(Trace, "Received ICMP from invalid interface");
         return true;
     }
-    if (itf->type() != Interface::VM_INTERFACE) {
+
+    //zx-ipv6
+    if (itf->type() != Interface::VM_INTERFACE && 
+        itf->type() != Interface::PHYSICAL) {
         icmpv6_proto->IncrementStatsDrop();
-        ICMPV6_TRACE(Trace, "Received ICMP from non-vm interface");
+        ICMPV6_TRACE(Trace, "Received ICMP from non-vm or physical interface");
         return true;
     }
+    
+    
+    nd_neighbor_advert *icmp = (nd_neighbor_advert *)icmp_;
+
+    if ((itf->type() == Interface::PHYSICAL) && 
+        (icmp_->icmp6_type == ND_NEIGHBOR_ADVERT))
+    {
+        return FabricIcmpv6Handle();
+    }
+
     VmInterface *vm_itf = static_cast<VmInterface *>(itf);
     if (!vm_itf->layer3_forwarding() || !vm_itf->ipv6_active()) {
         icmpv6_proto->IncrementStatsDrop();
         ICMPV6_TRACE(Trace, "Received ICMP with l3 disabled / ipv6 inactive");
         return true;
     }
-    nd_neighbor_advert *icmp = (nd_neighbor_advert *)icmp_;
     switch (icmp_->icmp6_type) {
         case ND_ROUTER_SOLICIT:
             icmpv6_proto->IncrementStatsRouterSolicit(vm_itf);
@@ -130,11 +218,11 @@ bool Icmpv6Handler::Run() {
                 //Enqueue a request to trigger state machine
                 agent()->oper_db()->route_preference_module()->
                     EnqueueTrafficSeen(addr, 128, itf->id(),
-                                       itf->vrf()->vrf_id(), mac);
-                return true;
+                                       itf->vrf()->vrf_id(), mac);                
+                return false;
             }
             ICMPV6_TRACE(Trace, "Ignoring Neighbor Solicit with wrong cksum");
-            break;
+            break;            
         default:
             break;
     }

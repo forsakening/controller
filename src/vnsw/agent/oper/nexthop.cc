@@ -467,7 +467,7 @@ void ArpNH::SendObjectLog(const NextHopTable *table,
     if (vrf) {
         info.set_vrf(vrf->GetName());
     }
-    const Ip4Address *ip = GetIp();
+    const IpAddress *ip = GetIp();
     info.set_dest_ip(ip->to_string());
 
     const unsigned char *m = GetMac().GetData();
