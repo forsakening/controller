@@ -36,6 +36,8 @@ Icmpv6Handler::Icmpv6Handler(Agent *agent, boost::shared_ptr<PktInfo> info,
                     ((uint8_t *)icmp_ - (uint8_t *)pkt_info_->ip6);
     else
         icmp_len_ = 0;
+
+    refcount_ = 0;
 }
 
 Icmpv6Handler::~Icmpv6Handler() {
@@ -94,7 +96,7 @@ bool Icmpv6Handler::FabricIcmpv6Handle() {
 
         //zx-ipv6 TODO when to delete the arp_handler
         ArpHandler* arp_handler = new ArpHandler(agent(), pkt_info_, io_);
-        entry = new ArpEntry(io_, arp_handler, key, nh_vrf, ArpEntry::INITING, itf);
+        entry = new ArpEntry(io_, arp_handler, this, key, nh_vrf, ArpEntry::INITING, itf);
         if (arp_proto->AddArpEntry(entry) == false) {
             delete entry;
             delete arp_handler;
@@ -381,6 +383,39 @@ void Icmpv6Handler::SendIcmpv6Response(uint32_t ifindex, uint32_t vrfindex,
     Send(ifindex, vrfindex, command, PktHandler::ICMPV6);
 }
 
+//zx-ipv6
+void Icmpv6Handler::SendIcmpv6Response_WithIfMac(uint32_t ifindex, uint32_t vrfindex,
+                                       uint8_t *src_ip, uint8_t *dest_ip,
+                                       const MacAddress &dest_mac,
+                                       uint16_t len) {
+
+    char *buff = (char *)pkt_info_->pkt;
+    uint16_t buff_len = pkt_info_->packet_buffer()->data_len();
+    char icmpv6_payload[icmp_len_];
+    memcpy(icmpv6_payload,icmp_,icmp_len_);
+
+    //zx-ipv6
+    MacAddress _mac;
+    const Interface *intf = agent()->interface_table()->FindInterface(ifindex);
+    if (NULL == intf)
+        _mac = agent()->vrrp_mac();
+    else
+        _mac = intf->mac();
+    
+    uint16_t eth_len = EthHdr(buff, buff_len, ifindex, _mac,
+                              dest_mac, ETHERTYPE_IPV6);
+
+    pkt_info_->ip6 = (struct ip6_hdr *)(buff + eth_len);
+    Ip6Hdr(pkt_info_->ip6, len, IPV6_ICMP_NEXT_HEADER, 255, src_ip, dest_ip);
+    memcpy(buff + sizeof(ip6_hdr) + eth_len, icmpv6_payload, icmp_len_);
+    pkt_info_->set_len(len + sizeof(ip6_hdr) + eth_len);
+    uint16_t command =
+        (pkt_info_->agent_hdr.cmd == AgentHdr::TRAP_TOR_CONTROL_PKT) ?
+        (uint16_t)AgentHdr::TX_ROUTE : AgentHdr::TX_SWITCH;
+    Send(ifindex, vrfindex, command, PktHandler::ICMPV6);
+}
+
+
 uint16_t Icmpv6Handler::FillNeighborSolicit(uint8_t *buf,
                                             const Ip6Address &target,
                                             uint8_t *sip, uint8_t *dip) {
@@ -405,6 +440,39 @@ uint16_t Icmpv6Handler::FillNeighborSolicit(uint8_t *buf,
     icmp->nd_ns_cksum = Icmpv6Csum(sip, dip, (icmp6_hdr *)icmp, offset);
     return offset;
 }
+
+//zx-ipv6 
+//fill NS pkts with fabric mac addr
+uint16_t Icmpv6Handler::FillNeighborSolicit_WithIfMac(uint8_t *buf,
+                                            const Ip6Address &target,
+                                            uint8_t *sip, uint8_t *dip, uint32_t itf) {
+    nd_neighbor_solicit *icmp = (nd_neighbor_solicit *)buf;
+    icmp->nd_ns_type = ND_NEIGHBOR_SOLICIT;
+    icmp->nd_ns_code = 0;
+    icmp->nd_ns_cksum = 0;
+    icmp->nd_ns_reserved = 0;
+    memcpy(icmp->nd_ns_target.s6_addr, target.to_bytes().data(), 16);
+    uint16_t offset = sizeof(nd_neighbor_solicit);
+
+    // add source linklayer address information
+    nd_opt_hdr *src_linklayer_addr = (nd_opt_hdr *)(buf + offset);
+    src_linklayer_addr->nd_opt_type = ND_OPT_SOURCE_LINKADDR;
+    src_linklayer_addr->nd_opt_len = 1;
+    //XXX instead of ETHER_ADDR_LEN, actual buffer size should be given
+    //to preven buffer overrun.
+    //agent()->vrrp_mac().ToArray(buf + offset + 2, ETHER_ADDR_LEN);
+    const Interface *intf = agent()->interface_table()->FindInterface(itf);
+    if (NULL == intf)
+        agent()->vrrp_mac().ToArray(buf + offset + 2, ETHER_ADDR_LEN);
+    else
+        intf->mac().ToArray(buf + offset + 2, ETHER_ADDR_LEN);
+
+    offset += sizeof(nd_opt_hdr) + ETHER_ADDR_LEN;
+
+    icmp->nd_ns_cksum = Icmpv6Csum(sip, dip, (icmp6_hdr *)icmp, offset);
+    return offset;
+}
+
 
 void Icmpv6Handler::Ipv6Lower24BitsExtract(uint8_t *dst, uint8_t *src) {
     for (int i = 0; i < 16; i++) {
@@ -474,6 +542,36 @@ void Icmpv6Handler::SendNeighborSolicit(const Ip6Address &sip,
                        solicited_mcast_ip, dmac, len);
 }
 
+//zx-ipv6
+void Icmpv6Handler::SendNeighborSolicit(const Ip6Address &sip,
+                                        const Ip6Address &dip,
+                                        uint32_t itf,
+                                        uint32_t vrf) {
+    if (pkt_info_->packet_buffer() == NULL) {
+        pkt_info_->AllocPacketBuffer(agent(), PktHandler::ICMPV6, ICMP_PKT_SIZE,
+                                     0);
+    }
+
+    pkt_info_->eth = (struct ether_header *)(pkt_info_->pkt);
+    pkt_info_->ip6 = (ip6_hdr *)(pkt_info_->pkt + sizeof(struct ether_header));
+
+    //zx-ipv6 TODO vlan tag ?
+    uint32_t vlan_offset = 0;
+    icmp_ = pkt_info_->transp.icmp6 =
+            (icmp6_hdr *)(pkt_info_->pkt + sizeof(struct ether_header) +
+                          vlan_offset + sizeof(ip6_hdr));
+    uint8_t solicited_mcast_ip[16], source_ip[16];
+    MacAddress dmac;
+    memcpy(source_ip, sip.to_bytes().data(), sizeof(source_ip));
+    SolicitedMulticastIpAndMac(dip, solicited_mcast_ip, dmac);
+    uint16_t len = FillNeighborSolicit_WithIfMac((uint8_t *)icmp_, dip, source_ip,
+                                       solicited_mcast_ip, itf);
+
+    //zx-ipv6 send icmpv6 with fabric mac
+    SendIcmpv6Response_WithIfMac(itf, vrf, source_ip,
+                       solicited_mcast_ip, dmac, len);
+}
+
 bool Icmpv6Handler::IsDefaultGatewayConfigured(uint32_t ifindex,
                                                const Ip6Address &addr) {
     Interface *intf = agent()->interface_table()->FindInterface(ifindex);
@@ -490,3 +588,16 @@ bool Icmpv6Handler::IsDefaultGatewayConfigured(uint32_t ifindex,
     }
     return !(ipam->default_gw.to_v6().is_unspecified());
 }
+
+//zx-ipv6 From arp_handler.cc
+void intrusive_ptr_add_ref(const Icmpv6Handler *p) {
+    p->refcount_++;
+}
+
+void intrusive_ptr_release(const Icmpv6Handler *p) {
+    if (p->refcount_.fetch_and_decrement() == 1) {
+        delete p;
+    }
+}
+
+

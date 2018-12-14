@@ -50,6 +50,11 @@ public:
                InterfaceConstRef itf) :
             InterTaskMsg(msg), key(ip, vrf), interface(itf) {}
 
+        //zx-ipv6
+        ArpIpc(ArpProto::ArpMsgType msg, IpAddress ip, const VrfEntry *vrf,
+               InterfaceConstRef itf) :
+            InterTaskMsg(msg), key(ip, vrf), interface(itf) {}
+
         ArpKey key;
         InterfaceConstRef interface;
     };
@@ -164,6 +169,8 @@ public:
     void set_retry_timeout(uint32_t timeout) { retry_timeout_ = timeout; }
     void set_aging_timeout(uint32_t timeout) { aging_timeout_ = timeout; }
     void SendArpIpc(ArpProto::ArpMsgType type, in_addr_t ip,
+                    const VrfEntry *vrf, InterfaceConstRef itf);
+    void SendArpIpc(ArpProto::ArpMsgType type, IpAddress ip,
                     const VrfEntry *vrf, InterfaceConstRef itf);
     bool ValidateAndClearVrfState(VrfEntry *vrf, const ArpVrfState *vrf_state);
     ArpIterator FindUpperBoundArpEntry(const ArpKey &key);

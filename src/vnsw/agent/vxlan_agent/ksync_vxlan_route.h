@@ -138,12 +138,14 @@ public:
     const MacAddress &mac() const { return mac_; }
     const KSyncVxlanBridgeEntry *bridge() const { return bridge_; }
     const KSyncVxlanPortEntry *port() const { return port_; }
-    const Ip4Address &tunnel_dest() const { return tunnel_dest_; }
+    const IpAddress &tunnel_dest() const { return tunnel_dest_; }
 private:
     KSyncVxlanBridgeEntry *bridge_;
     MacAddress mac_;
     KSyncVxlanPortEntry *port_;
-    Ip4Address tunnel_dest_;
+
+    //zx-ipv6
+    IpAddress tunnel_dest_;
     DISALLOW_COPY_AND_ASSIGN(KSyncVxlanFdbEntry);
 };
 

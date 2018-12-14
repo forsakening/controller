@@ -18,6 +18,24 @@ ArpEntry::ArpEntry(boost::asio::io_service &io, ArpHandler *handler,
                 TaskScheduler::GetInstance()->GetTaskId("Agent::Services"),
                 PktHandler::ARP);
     }
+
+    //zx-ipv6
+    icmpv6_reuse = false;
+}
+
+ArpEntry::ArpEntry(boost::asio::io_service &io, ArpHandler *handler, Icmpv6Handler *icmpv6_handler,
+             ArpKey &key, const VrfEntry *vrf, State state,
+              const Interface *itf)
+    : io_(io), key_(key), nh_vrf_(vrf), state_(state), retry_count_(0),
+      handler_(handler), icmpv6_handler_(icmpv6_handler), arp_timer_(NULL), interface_(itf) {
+    if (!IsDerived()) {
+        arp_timer_ = TimerManager::CreateTimer(io, "Arp Entry timer",
+                TaskScheduler::GetInstance()->GetTaskId("Agent::Services"),
+                PktHandler::ARP);
+    }
+
+    //zx-ipv6
+    icmpv6_reuse = true;
 }
 
 ArpEntry::~ArpEntry() {
@@ -189,22 +207,22 @@ void ArpEntry::SendArpRequest() {
     assert(!IsDerived());
 
     //zx-ipv6 
-    //ICMPv6 reuse this method, so skip this
-    if (key_.ip.is_v6())
-        return;
-    
+    //Icmpv6 ND neighbor solicitation reuse this method
     Agent *agent = handler_->agent();
     ArpProto *arp_proto = agent->GetArpProto();
     uint32_t vrf_id = VrfEntry::kInvalidIndex;
-    uint32_t intf_id = arp_proto->ip_fabric_interface_index();
-    Ip4Address ip;
+    uint32_t intf_id = arp_proto->ip_fabric_interface_index();//send it from fabirc port
+    IpAddress ip;
     MacAddress smac;
     if (interface_->type() == Interface::VM_INTERFACE) {
         const VmInterface *vmi =
             static_cast<const VmInterface *>(interface_.get());
-        ip = vmi->GetServiceIp(IpAddress(key_.ip)).to_v4();
+        ip = vmi->GetServiceIp(IpAddress(key_.ip));
         if (vmi->vmi_type() == VmInterface::VHOST) {
-            ip = agent->router_id();
+            if (icmpv6_reuse)
+                ip = agent->v6router_id();
+            else
+                ip = agent->router_id();
         }
         vrf_id = nh_vrf_->vrf_id();
         if (vmi->parent()) {
@@ -212,7 +230,11 @@ void ArpEntry::SendArpRequest() {
         }
         smac = vmi->GetVifMac(agent);
     } else {
-        ip = agent->router_id();
+        if (icmpv6_reuse)
+            ip = agent->v6router_id();
+        else
+            ip = agent->router_id();
+        
         VrfEntry *vrf =
             agent->vrf_table()->FindVrfFromName(agent->fabric_vrf_name());
         if (vrf) {
@@ -222,7 +244,10 @@ void ArpEntry::SendArpRequest() {
     }
 
     if (vrf_id != VrfEntry::kInvalidIndex) {
-        handler_->SendArp(ARPOP_REQUEST, smac, ip.to_ulong(),
+        if (icmpv6_reuse)
+            icmpv6_handler_->SendNeighborSolicit(ip.to_v6(), key_.ip.to_v6(), intf_id, vrf_id);
+        else
+            handler_->SendArp(ARPOP_REQUEST, smac, ip.to_v4().to_ulong(),
                           MacAddress(), MacAddress::BroadcastMac(), key_.ip.to_v4().to_ulong(), intf_id, vrf_id);
     }
 
@@ -263,8 +288,12 @@ void ArpEntry::AddArpRoute(bool resolved) {
     }
 
     ARP_TRACE(Trace, "Add", ip.to_string(), vrf_name, mac.ToString());
-    AgentRoute *entry = key_.vrf->GetInet4UnicastRouteTable()->FindLPM(ip);
-
+    AgentRoute *entry;
+    if (ip.is_v4())
+        entry = key_.vrf->GetInet4UnicastRouteTable()->FindLPM(ip);
+    else
+        entry = key_.vrf->GetInet6UnicastRouteTable()->FindLPM(ip);
+    
     bool policy = false;
     SecurityGroupList sg;
     TagList tag;

@@ -702,6 +702,9 @@ static bool FillEvpnOlist(Agent *agent,
 void AgentXmppChannel::AddMulticastEvpnRoute(const string &vrf_name,
                                              const MacAddress &mac,
                                              EnetItemType *item) {
+    //zx-ipv6 TODO
+    return;
+                                             
     //Traverse Leaf Olist
     TunnelOlist leaf_olist;
     TunnelOlist olist;
@@ -823,7 +826,8 @@ void AgentXmppChannel::AddEvpnRoute(const std::string &vrf_name,
     CONTROLLER_INFO_TRACE(RouteImport, GetBgpPeerName(), vrf_name,
                      mac.ToString(), 0, nexthop_addr, label, "");
 
-    if (agent_->router_id() != nh_ip.to_v4()) {
+    //zx-ipv6
+    if (nh_ip.is_v4() && (agent_->router_id() != nh_ip.to_v4())) {
         CONTROLLER_INFO_TRACE(Trace, GetBgpPeerName(), nexthop_addr,
                                     "add remote evpn route");
         VnListType vn_list;
@@ -835,6 +839,31 @@ void AgentXmppChannel::AddEvpnRoute(const std::string &vrf_name,
                                                      agent_->fabric_vrf_name(),
                                                      agent_->router_id(),
                                                      vrf_name, nh_ip.to_v4(),
+                                                     encap, label,
+                                                     vn_list,
+                                                     item->entry.security_group_list.security_group,
+                                                     tag_list,
+                                                     path_preference,
+                                                     (item->entry.next_hops.next_hop.size() > 1),
+                                                     EcmpLoadBalance(),
+                                                     item->entry.etree_leaf);
+        rt_table->AddRemoteVmRouteReq(bgp_peer_id(), vrf_name, mac, ip_addr,
+                                      item->entry.nlri.ethernet_tag, data);
+        return;
+    }
+
+    if (nh_ip.is_v6() && (agent_->v6router_id() != nh_ip.to_v6())) {
+        CONTROLLER_INFO_TRACE(Trace, GetBgpPeerName(), nexthop_addr,
+                                    "add remote evpn route");
+        VnListType vn_list;
+        vn_list.insert(item->entry.virtual_network);
+        // for number of nexthops more than 1, carry flag ecmp suppressed
+        // to indicate the same to all modules, till we handle L2 ecmp
+        ControllerVmRoute *data =
+            ControllerVmRoute::MakeControllerVmRoute(bgp_peer_id(),
+                                                     agent_->fabric_vrf_name(),
+                                                     agent_->v6router_id(),
+                                                     vrf_name, nh_ip.to_v6(),
                                                      encap, label,
                                                      vn_list,
                                                      item->entry.security_group_list.security_group,
@@ -913,7 +942,7 @@ void AgentXmppChannel::AddEvpnRoute(const std::string &vrf_name,
                              label, false, vn_list,
                              InterfaceNHFlags::BRIDGE,
                              sg_list, tag_list, CommunityList(), path_preference,
-                             Ip4Address(0), ecmp_load_balance, false, false,
+                             IpAddress(), ecmp_load_balance, false, false,
                              sequence_number(), item->entry.etree_leaf,
                              false);
     } else {
@@ -924,7 +953,7 @@ void AgentXmppChannel::AddEvpnRoute(const std::string &vrf_name,
                              false, vn_list,
                              InterfaceNHFlags::BRIDGE,
                              sg_list, tag_list, CommunityList(), path_preference,
-                             Ip4Address(0), ecmp_load_balance, false, false,
+                             IpAddress(), ecmp_load_balance, false, false,
                              sequence_number(), item->entry.etree_leaf,
                              false);
     }
@@ -1212,11 +1241,11 @@ void AgentXmppChannel::ReceiveBgpMessage(std::auto_ptr<XmlBase> impl) {
         return;
     }
     if (atoi(af) == BgpAf::L2Vpn && atoi(safi) == BgpAf::Enet) {
-        //ReceiveEvpnUpdate(pugi);
+        ReceiveEvpnUpdate(pugi);
         return;
     }
     if (atoi(safi) == BgpAf::Unicast) {
-        ReceiveV4V6Update(pugi);
+        //ReceiveV4V6Update(pugi);
         return;
     }
     CONTROLLER_TRACE (Trace, GetBgpPeerName(), vrf_name,

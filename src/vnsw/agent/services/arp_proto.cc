@@ -692,15 +692,17 @@ void ArpProto::NextHopNotify(DBEntryBase *entry) {
     switch(nh->GetType()) {
     case NextHop::ARP: {
         ArpNH *arp_nh = (static_cast<ArpNH *>(nh));
-        //zx-ipv6 v6 arp not do the flowing process
-        if (arp_nh->GetIp()->is_v6())
-            break;
+
+        //zx-ipv6 
+        //Both Ipv4 and v6 do the flowing process
+        //InetUnicastAgentRouteTable::AddArpReq will trigger this process
+        //And make the arp_entry module do the arp-request
         
         if (arp_nh->IsDeleted()) {
-            SendArpIpc(ArpProto::ARP_DELETE, arp_nh->GetIp()->to_v4().to_ulong(),
+            SendArpIpc(ArpProto::ARP_DELETE, *(arp_nh->GetIp()),
                        arp_nh->GetVrf(), arp_nh->GetInterface()); 
         } else if (arp_nh->IsValid() == false && arp_nh->GetInterface()) {
-            SendArpIpc(ArpProto::ARP_RESOLVE, arp_nh->GetIp()->to_v4().to_ulong(),
+            SendArpIpc(ArpProto::ARP_RESOLVE, *(arp_nh->GetIp()),
                        arp_nh->GetVrf(), arp_nh->GetInterface()); 
         }
         break;
@@ -782,6 +784,14 @@ void ArpProto::SendArpIpc(ArpProto::ArpMsgType type, in_addr_t ip,
     ArpIpc *ipc = new ArpIpc(type, ip, vrf, itf);
     agent_->pkt()->pkt_handler()->SendMessage(PktHandler::ARP, ipc);
 }
+
+//zx-ipv6
+void ArpProto::SendArpIpc(ArpProto::ArpMsgType type, IpAddress ip,
+                          const VrfEntry *vrf, InterfaceConstRef itf) {
+    ArpIpc *ipc = new ArpIpc(type, ip, vrf, itf);
+    agent_->pkt()->pkt_handler()->SendMessage(PktHandler::ARP, ipc);
+}
+
 
 void ArpProto::SendArpIpc(ArpProto::ArpMsgType type, ArpKey &key,
                           InterfaceConstRef itf) {

@@ -838,9 +838,10 @@ bool PktHandler::IsToRDevice(uint32_t vrf_id, const IpAddress &ip) {
     if (agent()->tsn_enabled() == false)
         return false;
 
-    if (ip.is_v4() == false)
-        return false;
-    Ip4Address ip4 = ip.to_v4();
+    //zx-ipv6 TODO    
+    //if (ip.is_v4() == false)
+    //    return false;
+    //IpAddress ip4 = ip.to_v4();
 
     VrfEntry *vrf = agent()->vrf_table()->FindVrfFromId(vrf_id);
     if (vrf == NULL)
@@ -883,7 +884,7 @@ bool PktHandler::IsToRDevice(uint32_t vrf_id, const IpAddress &ip) {
                 tor_it++;
                 continue;
             }
-            if (*tun_nh->GetDip() == ip4) {
+            if (*tun_nh->GetDip() == ip) {
                 return true;
             }
             tor_it++;

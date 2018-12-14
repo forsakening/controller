@@ -1218,18 +1218,20 @@ InetUnicastAgentRouteTable::ArpRoute(DBRequest::DBOperation op,
 
 void
 InetUnicastAgentRouteTable::CheckAndAddArpReq(const string &vrf_name,
-                                              const Ip4Address &ip,
+                                              const IpAddress &ip,
                                               const Interface *intf,
                                               const VnListType &vn_list,
                                               const SecurityGroupList &sg,
                                               const TagList &tag) {
 
-    if (ip == Agent::GetInstance()->router_id() ||
-        !IsIp4SubnetMember(ip, Agent::GetInstance()->router_id(),
-                           Agent::GetInstance()->vhost_prefix_len())) {
-        // TODO: add Arp request for GW
-        // Currently, default GW Arp is added during init
-        return;
+    if (ip.is_v4()){
+            if (ip == Agent::GetInstance()->router_id() ||
+            !IsIp4SubnetMember(ip.to_v4(), Agent::GetInstance()->router_id(),
+                               Agent::GetInstance()->vhost_prefix_len())) {
+            // TODO: add Arp request for GW
+            // Currently, default GW Arp is added during init
+            return;
+        }
     }
 
     std::string nexthop_vrf = intf->vrf()->GetName();
@@ -1380,8 +1382,8 @@ void InetUnicastAgentRouteTable::DelVHostSubnetRecvRoute(const string &vm_vrf,
 
 static void AddGatewayRouteInternal(const Peer *peer,
                                     DBRequest *req, const string &vrf_name,
-                                    const Ip4Address &dst_addr, uint8_t plen,
-                                    const Ip4Address &gw_ip,
+                                    const IpAddress &dst_addr, uint8_t plen,
+                                    const IpAddress &gw_ip,
                                     const VnListType &vn_name, uint32_t label,
                                     const SecurityGroupList &sg_list,
                                     const TagList &tag_list,
@@ -1398,9 +1400,9 @@ static void AddGatewayRouteInternal(const Peer *peer,
 
 void InetUnicastAgentRouteTable::AddGatewayRoute(const Peer *peer,
                                                  const string &vrf_name,
-                                                 const Ip4Address &dst_addr,
+                                                 const IpAddress &dst_addr,
                                                  uint8_t plen,
-                                                 const Ip4Address &gw_ip,
+                                                 const IpAddress &gw_ip,
                                                  const VnListType &vn_name,
                                                  uint32_t label,
                                                  const SecurityGroupList
@@ -1413,15 +1415,17 @@ void InetUnicastAgentRouteTable::AddGatewayRoute(const Peer *peer,
     DBRequest req;
     AddGatewayRouteInternal(peer, &req, vrf_name, dst_addr, plen, gw_ip, vn_name,
                             label, sg_list, tag_list, communities, native_encap);
-    Inet4UnicastTableProcess(Agent::GetInstance(), vrf_name, req);
+
+    //zx-ipv6
+    InetUnicastTableProcess(Agent::GetInstance(), vrf_name, req);
 }
 
 void
 InetUnicastAgentRouteTable::AddGatewayRouteReq(const Peer *peer,
                                                const string &vrf_name,
-                                               const Ip4Address &dst_addr,
+                                               const IpAddress &dst_addr,
                                                uint8_t plen,
-                                               const Ip4Address &gw_ip,
+                                               const IpAddress &gw_ip,
                                                const VnListType &vn_list,
                                                uint32_t label,
                                                const SecurityGroupList
@@ -1435,7 +1439,9 @@ InetUnicastAgentRouteTable::AddGatewayRouteReq(const Peer *peer,
     AddGatewayRouteInternal(peer, &req, vrf_name, dst_addr, plen, gw_ip,
                             vn_list, label, sg_list, tag_list, communities,
                             native_encap);
-    Inet4UnicastTableEnqueue(Agent::GetInstance(), &req);
+
+    //zx-ipv6
+    InetUnicastTableProcess(Agent::GetInstance(), vrf_name, req);
 }
 
 void

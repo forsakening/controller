@@ -36,8 +36,8 @@ OverlayTraceRoute::~OverlayTraceRoute() {
 void OverlayTraceRoute::SendRequest() 
 {
     Agent *agent = diag_table_->agent();
-    Ip4Address tunneldst;
-    Ip4Address tunnelsrc;
+    IpAddress tunneldst;
+    IpAddress tunnelsrc;
     seq_no_++;
     string vrf_name;
     boost::system::error_code ec;
@@ -56,6 +56,11 @@ void OverlayTraceRoute::SendRequest()
 
     tunneldst = *nh->GetDip();
     tunnelsrc = *nh->GetSip();
+
+    //zx-ipv6 TODO
+    if (tunneldst.is_v6() || tunnelsrc.is_v6())
+        return;
+    
     len_ = OverlayPing::kOverlayUdpHdrLength + data_len;
     boost::shared_ptr<PktInfo> pkt_info(new PktInfo(agent, len_,
                                                         PktHandler::DIAG, 0));
@@ -77,11 +82,11 @@ void OverlayTraceRoute::SendRequest()
     uint8_t  len;
     len = data_len+2 * sizeof(udphdr)+sizeof(VxlanHdr)+
                             sizeof(struct ip) + sizeof(struct ether_header);
-    pkt_handler->UdpHdr(len, ntohl(tunnelsrc.to_ulong()), HashValUdpSourcePort(),
-                     ntohl(tunneldst.to_ulong()), VXLAN_UDP_DEST_PORT);
+    pkt_handler->UdpHdr(len, ntohl(tunnelsrc.to_v4().to_ulong()), HashValUdpSourcePort(),
+                     ntohl(tunneldst.to_v4().to_ulong()), VXLAN_UDP_DEST_PORT);
 
-    pkt_handler->IpHdr(len + sizeof(struct ip), ntohl(tunnelsrc.to_ulong()),
-                       ntohl(tunneldst.to_ulong()), IPPROTO_UDP,
+    pkt_handler->IpHdr(len + sizeof(struct ip), ntohl(tunnelsrc.to_v4().to_ulong()),
+                       ntohl(tunneldst.to_v4().to_ulong()), IPPROTO_UDP,
                        DEFAULT_IP_ID, ttl_);
    // Fill VxLan Header  
     VxlanHdr *vxlanhdr = (VxlanHdr *)(buf + sizeof(udphdr)+ sizeof(struct ip)

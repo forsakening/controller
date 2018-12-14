@@ -137,7 +137,7 @@ bool KSyncVxlanFdbEntry::Sync(DBEntry *e) {
 
     // Look for change in nexthop
     KSyncVxlanPortEntry *port = NULL;
-    Ip4Address tunnel_dest = Ip4Address(0);
+    IpAddress tunnel_dest = IpAddress();
     const NextHop *nh = fdb->GetActiveNextHop();
     if (nh != NULL) {
         if (nh->GetType() == NextHop::INTERFACE) {

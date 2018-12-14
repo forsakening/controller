@@ -1397,7 +1397,7 @@ void PktFlowInfo::IngressProcess(const PktInfo *pkt, PktControlInfo *in,
 
         if (nh && nh->GetType() == NextHop::TUNNEL) {
             const TunnelNH* tunnel_nh = static_cast<const TunnelNH *>(nh);
-            const Ip4Address *ip = tunnel_nh->GetDip();
+            const IpAddress *ip = tunnel_nh->GetDip();
             if (ip) {
                 peer_vrouter = ip->to_string();
                 tunnel_type = tunnel_nh->GetTunnelType();

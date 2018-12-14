@@ -52,7 +52,7 @@ AgentPath::AgentPath(const Peer *peer, AgentRoute *rt):
     Path(), peer_(peer), nh_(NULL), label_(MplsTable::kInvalidLabel),
     vxlan_id_(VxLanTable::kInvalidvxlan_id), dest_vn_list_(),
     sync_(false), force_policy_(false), sg_list_(),
-    tunnel_dest_(0), tunnel_bmap_(TunnelType::AllType()),
+    tunnel_dest_(), tunnel_bmap_(TunnelType::AllType()),
     tunnel_type_(TunnelType::ComputeType(TunnelType::AllType())),
     vrf_name_(""), gw_ip_(), unresolved_(true),
     is_subnet_discard_(false), dependant_rt_(rt), path_preference_(),

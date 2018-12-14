@@ -56,7 +56,7 @@ private:
 class ControllerVmRoute : public ControllerPeerPath {
 public:
     ControllerVmRoute(const BgpPeer *peer, const string &vrf_name,
-                  const Ip4Address &addr, uint32_t label,
+                  const IpAddress &addr, uint32_t label,
                   const VnListType &dest_vn_list, int bmap,
                   const SecurityGroupList &sg_list,
                   const TagList &tag_list,
@@ -81,11 +81,13 @@ public:
     virtual string ToString() const {return "remote VM";}
     const SecurityGroupList &sg_list() const {return sg_list_;}
     const TagList &tag_list() const {return tag_list_;}
+
+    //zx-ipv6
     static ControllerVmRoute *MakeControllerVmRoute(const BgpPeer *peer,
                                             const string &default_vrf,
-                                            const Ip4Address &router_id,
+                                            const IpAddress &router_id,
                                             const string &vrf_name,
-                                            const Ip4Address &tunnel_dest,
+                                            const IpAddress &tunnel_dest,
                                             TunnelType::TypeBmap bmap,
                                             uint32_t label,
                                             const VnListType &dest_vn_list,
@@ -98,7 +100,7 @@ public:
 
 private:
     string server_vrf_;
-    Ip4Address tunnel_dest_;
+    IpAddress tunnel_dest_;
     TunnelType::TypeBmap tunnel_bmap_;
     uint32_t label_;
     VnListType dest_vn_list_;

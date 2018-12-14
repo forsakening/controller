@@ -28,13 +28,13 @@ public:
     void AddOvsPeerMulticastRouteReq(const Peer* peer,
                                      uint32_t vxlan_id,
                                      const std::string &vn_name,
-                                     Ip4Address vtep,
-                                     Ip4Address tor_ip);
+                                     IpAddress vtep,
+                                     IpAddress tor_ip);
     void AddOvsPeerMulticastRoute(const Peer* peer,
                                   uint32_t vxlan_id,
                                   const std::string &vn_name,
-                                  Ip4Address vtep,
-                                  Ip4Address tor_ip,
+                                  IpAddress vtep,
+                                  IpAddress tor_ip,
                                   bool ha_stale);
     void AddReceiveRouteReq(const Peer *peer, const std::string &vrf_name,
                             uint32_t label, const MacAddress &mac,
@@ -109,10 +109,10 @@ public:
     //Delete routines
     void DeleteOvsPeerMulticastRouteReq(const Peer *peer,
                                         uint32_t vxlan_id,
-                                        const Ip4Address &tor_ip);
+                                        const IpAddress &tor_ip);
     void DeleteOvsPeerMulticastRoute(const Peer *peer,
                                      uint32_t vxlan_id,
-                                     const Ip4Address &tor_ip);
+                                     const IpAddress &tor_ip);
     void DelLocalVmRoute(const Peer *peer, const std::string &vrf_name,
                          const MacAddress &mac, const VmInterface *intf,
                          const IpAddress &ip, uint32_t ethernet_tag);
@@ -138,13 +138,13 @@ private:
     void AddOvsPeerMulticastRouteInternal(const Peer* peer,
                                           uint32_t vxlan_id,
                                           const std::string &vn_name,
-                                          Ip4Address vtep,
-                                          Ip4Address tor_ip,
+                                          IpAddress vtep,
+                                          IpAddress tor_ip,
                                           bool enqueue,
                                           bool ha_stale);
     void DeleteOvsPeerMulticastRouteInternal(const Peer *peer,
                                              uint32_t vxlan_id,
-                                             const Ip4Address &tor_ip,
+                                             const IpAddress &tor_ip,
                                              bool enqueue);
 
 };

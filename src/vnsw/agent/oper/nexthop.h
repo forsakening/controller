@@ -871,8 +871,8 @@ private:
 /////////////////////////////////////////////////////////////////////////////
 class TunnelNHKey : public NextHopKey {
 public:
-    TunnelNHKey(const string &vrf_name, const Ip4Address &sip,
-                const Ip4Address &dip, bool policy, TunnelType type) :
+    TunnelNHKey(const string &vrf_name, const IpAddress &sip,
+                const IpAddress &dip, bool policy, TunnelType type) :
         NextHopKey(NextHop::TUNNEL, policy), vrf_key_(vrf_name), sip_(sip),
         dip_(dip), tunnel_type_(type) { 
     };
@@ -903,14 +903,18 @@ public:
     void set_tunnel_type(TunnelType tunnel_type) {
         tunnel_type_ = tunnel_type;
     }
-    const Ip4Address dip() const {
+
+    //zx-ipv6
+    const IpAddress dip() const {
         return dip_;
     }
 private:
     friend class TunnelNH;
     VrfKey vrf_key_;
-    Ip4Address sip_;
-    Ip4Address dip_;
+
+    //zx-ipv6
+    IpAddress sip_;
+    IpAddress dip_;
     TunnelType tunnel_type_;
     DISALLOW_COPY_AND_ASSIGN(TunnelNHKey);
 };
@@ -1654,7 +1658,7 @@ public:
     virtual void OnZeroRefCount() {
         return;
     }
-    uint32_t GetRemoteLabel(const Ip4Address &ip) const;
+    uint32_t GetRemoteLabel(const IpAddress &ip) const;
     ComponentNHKeyList AddComponentNHKey(ComponentNHKeyPtr component_nh_key,
                                          bool &comp_nh_policy) const;
     ComponentNHKeyList DeleteComponentNHKey(ComponentNHKeyPtr

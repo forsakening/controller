@@ -8,19 +8,26 @@
 #include <oper/route_leak.h>
 
 void RouteLeakState::AddIndirectRoute(const AgentRoute *route) {
-    //zx-ipv6 TODO
-    InetUnicastAgentRouteTable *table = dest_vrf_->GetInet4UnicastRouteTable();
+    //zx-ipv6
+    InetUnicastAgentRouteTable *table;
     const InetUnicastRouteEntry *uc_rt = 
         static_cast<const InetUnicastRouteEntry *>(route);
+
+    if (uc_rt->addr().is_v4())
+        table = dest_vrf_->GetInet4UnicastRouteTable();
+    else
+        table = dest_vrf_->GetInet6UnicastRouteTable();
+    
     const AgentPath *active_path = uc_rt->GetActivePath();
     const TunnelNH *nh = dynamic_cast<const TunnelNH *>(active_path->nexthop());
-    Ip4Address gw_ip = *(nh->GetDip());
+    IpAddress gw_ip = *(nh->GetDip());
 
-    if (gw_ip == uc_rt->addr().to_v4() &&
+    if (gw_ip == uc_rt->addr() &&
         InetUnicastAgentRouteTable::FindResolveRoute(dest_vrf_->GetName(),
-                                                     uc_rt->addr().to_v4())) {
+                                                     uc_rt->addr())) {        
+                                                     
         InetUnicastAgentRouteTable::CheckAndAddArpReq(dest_vrf_->GetName(),
-                                                      uc_rt->addr().to_v4(),
+                                                      uc_rt->addr(),
                                                       agent_->vhost_interface(),
                                                       active_path->dest_vn_list(),
                                                       active_path->sg_list(),

@@ -32,7 +32,7 @@ public:
     Agent *agent() const;
     void ManagedDelete();
     virtual void EmptyTable();
-    Ip4Address dev_ip() const;
+    IpAddress dev_ip() const;
     uint32_t vxlan_id() const;
     const std::string &vn_name() const;
     const std::string &vrf_name() const;
@@ -46,7 +46,9 @@ private:
     // DevVn entry will not be deleted till we del_ack for it
     HaStaleDevVnEntry *dev_vn_;
     ConnectionStateEntry *state_;
-    Ip4Address dev_ip_;
+
+    //zx-ipv6
+    IpAddress dev_ip_;
     uint32_t vxlan_id_;
     // take reference to the vrf while exporting route, to assure sanity
     // of vrf pointer even if Add route request fails, due to any reason
@@ -90,8 +92,10 @@ private:
     uint32_t path_preference_;
     uint32_t vxlan_id_;
     uint64_t time_stamp_;
-    Ip4Address sip_;
-    Ip4Address dip_;
+
+    //zx-ipv6
+    IpAddress sip_;
+    IpAddress dip_;
     bool is_multicast_;
     DISALLOW_COPY_AND_ASSIGN(HaStaleL2RouteEntry);
 };

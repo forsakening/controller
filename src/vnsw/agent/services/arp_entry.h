@@ -5,6 +5,9 @@
 #ifndef vnsw_agent_arp_entry_hpp
 #define vnsw_agent_arp_entry_hpp
 
+//zx-ipv6
+#include "services/icmpv6_handler.h"
+
 struct ArpKey {
     ArpKey(in_addr_t addr, const VrfEntry *ventry) : vrf(ventry) {
         Ip4Address v4(addr);
@@ -36,6 +39,10 @@ public:
     };
 
     ArpEntry(boost::asio::io_service &io, ArpHandler *handler,
+             ArpKey &key, const VrfEntry *vrf, State state,
+              const Interface *itf);
+
+    ArpEntry(boost::asio::io_service &io, ArpHandler *handler, Icmpv6Handler *icmpv6_handler,
              ArpKey &key, const VrfEntry *vrf, State state,
               const Interface *itf);
     
@@ -71,6 +78,11 @@ private:
     State state_;
     int retry_count_;
     boost::intrusive_ptr<ArpHandler> handler_;
+
+    //zx-ipv6 icmpv6 reuse this method 
+    boost::intrusive_ptr<Icmpv6Handler> icmpv6_handler_;
+    bool icmpv6_reuse;
+    
     Timer *arp_timer_;
     InterfaceConstRef interface_;
     DISALLOW_COPY_AND_ASSIGN(ArpEntry);

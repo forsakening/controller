@@ -855,7 +855,7 @@ void VrfNH::SendObjectLog(const NextHopTable *table,
 /////////////////////////////////////////////////////////////////////////////
 // Tunnel NH routines
 /////////////////////////////////////////////////////////////////////////////
-TunnelNH::TunnelNH(VrfEntry *vrf, const Ip4Address &sip, const Ip4Address &dip,
+TunnelNH::TunnelNH(VrfEntry *vrf, const IpAddress &sip, const IpAddress &dip,
                    bool policy, TunnelType type) :
     NextHop(NextHop::TUNNEL, false, policy), vrf_(vrf, this), sip_(sip),
     dip_(dip), tunnel_type_(type), arp_rt_(this), interface_(NULL), dmac_() {
@@ -870,7 +870,7 @@ bool TunnelNH::CanAdd() const {
         return false;
     }
 
-    if (dip_.to_ulong() == 0) {
+    if (dip_.to_string() == "0.0.0.0" || dip_.to_string() == "::") {
         LOG(ERROR, "Invalid tunnel-destination in TunnelNH");
     }
 
@@ -929,8 +929,14 @@ bool TunnelNH::ChangeEntry(const DBRequest *req) {
     bool ret = false;
     bool valid = false;
 
-    InetUnicastAgentRouteTable *rt_table =
-        (GetVrf()->GetInet4UnicastRouteTable());
+    InetUnicastAgentRouteTable *rt_table;
+
+    //zx-ipv6
+    if (dip_.is_v4())
+        rt_table = (GetVrf()->GetInet4UnicastRouteTable());
+    else
+        rt_table = (GetVrf()->GetInet6UnicastRouteTable());
+    
     InetUnicastRouteEntry *rt = rt_table->FindLPM(dip_);
     if (!rt) {
         //No route to reach destination, add to unresolved list
@@ -948,6 +954,7 @@ bool TunnelNH::ChangeEntry(const DBRequest *req) {
             nexthop_vrf = nh->interface()->vrf()->forwarding_vrf()->GetName();
         }
 
+        //zx-ipv6 TODO ipv6 arp req
         InetUnicastAgentRouteTable::AddArpReq(GetVrf()->GetName(), dip_,
                                               nexthop_vrf,
                                               nh->interface(),
@@ -1005,8 +1012,13 @@ bool TunnelNH::ChangeEntry(const DBRequest *req) {
 }
 
 void TunnelNH::Delete(const DBRequest *req) {
-    InetUnicastAgentRouteTable *rt_table =
-        (GetVrf()->GetInet4UnicastRouteTable());
+    InetUnicastAgentRouteTable *rt_table;
+
+    if (dip_.is_v4())
+        rt_table = (GetVrf()->GetInet4UnicastRouteTable());
+    else
+        rt_table = (GetVrf()->GetInet6UnicastRouteTable());
+    
     if (rt_table)
         rt_table->RemoveUnresolvedNH(this);
 }
@@ -1020,9 +1032,9 @@ void TunnelNH::SendObjectLog(const NextHopTable *table,
     if (vrf) {
         info.set_vrf(vrf->GetName());
     }
-    const Ip4Address *sip = GetSip();
+    const IpAddress *sip = GetSip();
     info.set_source_ip(sip->to_string());
-    const Ip4Address *dip = GetDip();
+    const IpAddress *dip = GetDip();
     info.set_dest_ip(dip->to_string());
     info.set_tunnel_type(tunnel_type_.ToString());
     OPER_TRACE_ENTRY(NextHop, table, info);
@@ -1982,7 +1994,7 @@ bool CompositeNH::GetIndex(ComponentNH &component_nh, uint32_t &idx) const {
     return false;
 }
 
-uint32_t CompositeNH::GetRemoteLabel(const Ip4Address &ip) const {
+uint32_t CompositeNH::GetRemoteLabel(const IpAddress &ip) const {
     BOOST_FOREACH(ComponentNHPtr component_nh,
                   component_nh_list_) {
         if (component_nh.get() == NULL) {

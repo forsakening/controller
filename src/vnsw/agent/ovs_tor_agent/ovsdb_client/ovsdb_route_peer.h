@@ -20,16 +20,16 @@ class OvsPeer : public DynamicPeer {
     const IpAddress *NexthopIp6(Agent *agent, const AgentPath *path) const;
     bool AddOvsRoute(const VrfEntry *vrf, uint32_t vxlan_id,
                      const std::string &dest_vn, const MacAddress &mac,
-                     Ip4Address &tor_ip);
+                     IpAddress &tor_ip);
     void DeleteOvsRoute(VrfEntry *vrf, uint32_t vxlan, const MacAddress &mac);
     void AddOvsPeerMulticastRoute(const VrfEntry *vrf,
                                   uint32_t vxlan_id,
                                   const std::string &vn_name_,
-                                  const Ip4Address &tsn_ip,
-                                  const Ip4Address &tor_ip);
+                                  const IpAddress &tsn_ip,
+                                  const IpAddress &tor_ip);
     void DeleteOvsPeerMulticastRoute(const VrfEntry *vrf,
                                      uint32_t vxlan_id,
-                                     const Ip4Address &tor_ip);
+                                     const IpAddress &tor_ip);
     const IpAddress &peer_ip() const {return peer_ip_;}
 
     void set_ha_stale_export(bool ha_stale_export) {

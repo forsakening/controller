@@ -25,6 +25,14 @@ public:
     void SendNeighborSolicit(const Ip6Address &sip, const Ip6Address &dip,
                              const VmInterface *vmi, uint32_t vrf);
 
+    //zx-ipv6
+    void SendNeighborSolicit(const Ip6Address &sip,
+                                        const Ip6Address &dip,
+                                        uint32_t itf,
+                                        uint32_t vrf);
+    friend void intrusive_ptr_add_ref(const Icmpv6Handler *p);
+    friend void intrusive_ptr_release(const Icmpv6Handler *p);
+    
 private:
     bool CheckPacket();
     bool FabricIcmpv6Handle();
@@ -39,16 +47,27 @@ private:
     void SendIcmpv6Response(uint32_t ifindex, uint32_t vrfindex,
                             uint8_t *src_ip, uint8_t *dest_ip,
                             const MacAddress &dest_mac, uint16_t len);
+    //zx-ipv6
+    void SendIcmpv6Response_WithIfMac(uint32_t ifindex, uint32_t vrfindex,
+                            uint8_t *src_ip, uint8_t *dest_ip,
+                            const MacAddress &dest_mac, uint16_t len);
+    
     void SolicitedMulticastIpAndMac(const Ip6Address &dip, uint8_t *ip,
                                     MacAddress &mac);
     uint16_t FillNeighborSolicit(uint8_t *buf, const Ip6Address &target,
                                  uint8_t *sip, uint8_t *dip);
+
+    //zx-ipv6
+    uint16_t FillNeighborSolicit_WithIfMac(uint8_t *buf, const Ip6Address &target,
+                                 uint8_t *sip, uint8_t *dip, uint32_t itf);
+    
     void Ipv6Lower24BitsExtract(uint8_t *dst, uint8_t *src);
     void Ipv6AddressBitwiseOr(uint8_t *dst, uint8_t *src);
     bool IsDefaultGatewayConfigured(uint32_t ifindex, const Ip6Address &addr);
 
     icmp6_hdr *icmp_;
     uint16_t icmp_len_;
+    mutable tbb::atomic<uint32_t> refcount_;
     DISALLOW_COPY_AND_ASSIGN(Icmpv6Handler);
 };
 

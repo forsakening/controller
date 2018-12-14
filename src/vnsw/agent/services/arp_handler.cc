@@ -246,11 +246,26 @@ bool ArpHandler::HandleMessage() {
         case ArpProto::ARP_RESOLVE: {
             ArpEntry *entry = arp_proto->FindArpEntry(ipc->key);
             if (!entry) {
-                entry = new ArpEntry(io_, this, ipc->key, ipc->key.vrf,
-                                     ArpEntry::INITING, ipc->interface.get());
-                if (arp_proto->AddArpEntry(entry) == false) {
-                    delete entry;
-                    break;
+
+                if (ipc->key.ip.is_v6()){
+                    //zx-ipv6 TODO when to delete the icmpv6_handler
+                    Icmpv6Handler* icmpv6_handler = new Icmpv6Handler(agent(), pkt_info_, io_);
+                    entry = new ArpEntry(io_, this, icmpv6_handler, ipc->key, ipc->key.vrf, 
+                                        ArpEntry::INITING, ipc->interface.get());
+                    if (arp_proto->AddArpEntry(entry) == false) {
+                        delete entry;
+                        delete icmpv6_handler;
+                        break;
+                    }
+                }
+                else {
+                    entry = new ArpEntry(io_, this, ipc->key, ipc->key.vrf,
+                                         ArpEntry::INITING, ipc->interface.get());
+                
+                    if (arp_proto->AddArpEntry(entry) == false) {
+                        delete entry;
+                        break;
+                    }
                 }
                 ret = false;
             }

@@ -13,7 +13,7 @@
 
 class TunnelNH : public NextHop {
 public:
-    TunnelNH(VrfEntry *vrf, const Ip4Address &sip, const Ip4Address &dip,
+    TunnelNH(VrfEntry *vrf, const IpAddress &sip, const IpAddress &dip,
              bool policy, TunnelType type);
     virtual ~TunnelNH();
 
@@ -29,8 +29,10 @@ public:
 
     const uint32_t vrf_id() const;
     const VrfEntry *GetVrf() const {return vrf_.get();};
-    const Ip4Address *GetSip() const {return &sip_;};
-    const Ip4Address *GetDip() const {return &dip_;};
+    //zx-ipv6
+    bool ipv6_flag() const {return dip_.is_v6();}
+    const IpAddress *GetSip() const {return &sip_;};
+    const IpAddress *GetDip() const {return &dip_;};
     const AgentRoute *GetRt() const {return arp_rt_.get();};
     const MacAddress *GetDmac() const {return &dmac_;}
     const TunnelType &GetTunnelType() const {return tunnel_type_;};
@@ -50,8 +52,9 @@ public:
     virtual bool NeedMplsLabel() { return false; }
 private:
     VrfEntryRef vrf_;
-    Ip4Address sip_;
-    Ip4Address dip_;
+    //zx-ipv6
+    IpAddress sip_;
+    IpAddress dip_;
     TunnelType tunnel_type_;
     DependencyRef<NextHop, AgentRoute> arp_rt_;
     InterfaceConstRef interface_;

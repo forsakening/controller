@@ -239,7 +239,7 @@ public:
     InetUnicastRouteEntry *FindResolveRoute(const IpAddress &ip);
     static InetUnicastRouteEntry *FindResolveRoute(const string &vrf_name, 
                                                    const IpAddress &ip);
-    static void CheckAndAddArpReq(const string &vrf_name, const Ip4Address &ip,
+    static void CheckAndAddArpReq(const string &vrf_name, const IpAddress &ip,
                                   const Interface *intf,
                                   const VnListType &vn_list,
                                   const SecurityGroupList &sg,
@@ -302,8 +302,8 @@ public:
                              const string &vn_name);
     static void AddGatewayRoute(const Peer *peer,
                                 const string &vrf_name,
-                                const Ip4Address &dst_addr,uint8_t plen,
-                                const Ip4Address &gw_ip,
+                                const IpAddress &dst_addr,uint8_t plen,
+                                const IpAddress &gw_ip,
                                 const VnListType &vn_name, uint32_t label,
                                 const SecurityGroupList &sg_list,
                                 const TagList &tag_list,
@@ -311,8 +311,8 @@ public:
                                 bool native_encap);
     static void AddGatewayRouteReq(const Peer *peer,
                                    const string &vrf_name,
-                                   const Ip4Address &dst_addr,uint8_t plen,
-                                   const Ip4Address &gw_ip,
+                                   const IpAddress &dst_addr,uint8_t plen,
+                                   const IpAddress &gw_ip,
                                    const VnListType &vn_name, uint32_t label,
                                    const SecurityGroupList &sg_list,
                                    const TagList &tag_list,

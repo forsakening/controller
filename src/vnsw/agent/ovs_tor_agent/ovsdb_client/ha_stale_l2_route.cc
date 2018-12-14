@@ -277,7 +277,7 @@ void HaStaleL2RouteTable::EmptyTable() {
     }
 }
 
-Ip4Address HaStaleL2RouteTable::dev_ip() const {
+IpAddress HaStaleL2RouteTable::dev_ip() const {
     return dev_ip_;
 }
 
