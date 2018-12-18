@@ -189,9 +189,9 @@ protected:
     virtual void WriteReadyCb(const boost::system::error_code &ec);
 
 private:
-    void AddFabricVrfRoute(const Ip4Address &prefix_addr,
+    void AddFabricVrfRoute(const IpAddress &prefix_addr,
                            uint32_t prefix_len,
-                           const Ip4Address &addr,
+                           const IpAddress &addr,
                            const VnListType &vn_list,
                            const SecurityGroupList &sg_list,
                            const TagList &tag_list);

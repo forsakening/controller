@@ -325,17 +325,20 @@ void ArpDBState::UpdateArpRoutes(const InetUnicastRouteEntry *rt) {
 
 void ArpDBState::Delete(const InetUnicastRouteEntry *rt) {
     int plen = rt->plen();
-    uint32_t start_ip = rt->addr().to_v4().to_ulong();
+
+    //zx-ipv6
+    IpAddress start_ip = rt->addr();
 
     ArpKey start_key(start_ip, rt->vrf());
 
     ArpProto::ArpIterator start_iter =
         vrf_state_->arp_proto->FindUpperBoundArpEntry(start_key);
 
+    //zx-ipv6 TODO
     while (start_iter != vrf_state_->arp_proto->arp_cache().end() &&
-           start_iter->first.vrf == rt->vrf() &&
+           start_iter->first.vrf == rt->vrf() && (start_iter->first.ip.is_v4() &&
            IsIp4SubnetMember(Ip4Address(start_iter->first.ip.to_v4()),
-                             rt->addr().to_v4(), plen)) {
+                             rt->addr().to_v4(), plen))) {
         ArpProto::ArpIterator tmp = start_iter++;
         if (tmp->second->DeleteArpRoute()) {
             vrf_state_->arp_proto->DeleteArpEntry(tmp->second);

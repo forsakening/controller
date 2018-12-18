@@ -739,20 +739,29 @@ void AgentXmppChannel::AddMulticastEvpnRoute(const string &vrf_name,
                           multicast_sequence_number());
 }
 
-void AgentXmppChannel::AddFabricVrfRoute(const Ip4Address &prefix_addr,
+void AgentXmppChannel::AddFabricVrfRoute(const IpAddress &prefix_addr,
                                          uint32_t prefix_len,
-                                         const Ip4Address &addr,
+                                         const IpAddress &addr,
                                          const VnListType &vn_list,
                                          const SecurityGroupList &sg_list,
                                          const TagList &tag_list) {
-    InetUnicastAgentRouteTable *table =
-        agent_->fabric_vrf()->GetInet4UnicastRouteTable();
-
+    InetUnicastAgentRouteTable *table = NULL;
+    if (addr.is_v4()){
+        table = agent_->fabric_vrf()->GetInet4UnicastRouteTable();
+        if (prefix_addr.to_v4() == agent_->router_id() && prefix_len == 32)
+            return;
+    }else{
+        table = agent_->fabric_vrf()->GetInet6UnicastRouteTable();
+        if (prefix_addr.to_v6() == agent_->v6router_id() && prefix_len == 128)
+            return;
+    }
+    /*
     if (prefix_addr == agent_->router_id() && prefix_len == 32) {
         return;
-    }
+    }*/
 
-    if (addr == agent_->router_id()) {
+    if ((addr.is_v4() && addr.to_v4() == agent_->router_id()) || 
+        (addr.is_v6() && addr.to_v6() == agent_->v6router_id())) {
         ClonedLocalPath *data =
             new ClonedLocalPath(MplsTable::kInvalidExportLabel,
                                 vn_list, sg_list, tag_list, sequence_number());
@@ -761,13 +770,16 @@ void AgentXmppChannel::AddFabricVrfRoute(const Ip4Address &prefix_addr,
         return;
     }
 
-    Ip4Address nh = addr;
+    IpAddress nh = addr;
 
     if (table->FindResolveRoute(addr) == NULL) {
+        if (nh.is_v4())
         nh = agent_->vhost_default_gateway();
+        else
+            nh = agent_->vhost_default_v6gateway();
     }
 
-    if (prefix_addr == addr && prefix_len == 32 &&
+    if (prefix_addr == addr && (prefix_len == 32 || prefix_len == 128) && 
         table->FindResolveRoute(addr)) {
         //Route is resolvable dont add any entry
         return;
@@ -1008,27 +1020,39 @@ void AgentXmppChannel::AddRemoteRoute(string vrf_name, IpAddress prefix_addr,
     if (item->entry.next_hops.next_hop[0].label ==
             MplsTable::kInvalidExportLabel &&
         vrf_name == agent_->fabric_vrf_name()) {
-        AddFabricVrfRoute(prefix_addr.to_v4(), prefix_len, addr.to_v4(),
+        AddFabricVrfRoute(prefix_addr, prefix_len, addr,
                           vn_list,
                           item->entry.security_group_list.security_group,
                           tag_list);
         return;
     }
-    if (agent_->router_id() != addr.to_v4()) {
+    if ((addr.is_v4() && agent_->router_id() != addr.to_v4()) ||
+        (addr.is_v6() && agent_->v6router_id() != addr.to_v6())) {
         EcmpLoadBalance ecmp_load_balance;
         GetEcmpHashFieldsToUse(item, ecmp_load_balance);
         if (TunnelType::DefaultType() == TunnelType::VXLAN) {
             encap |= (1 << TunnelType::VXLAN);
             LOG(DEBUG,"add vxlan tunnel plen "<<prefix_len<<" label "<<label<<endl);
         }
-        ControllerVmRoute *data =
-            ControllerVmRoute::MakeControllerVmRoute(bgp_peer_id(),
-                               agent_->fabric_vrf_name(), agent_->router_id(),
-                               vrf_name, addr.to_v4(), encap, label, vn_list,
-                               item->entry.security_group_list.security_group,
-                               tag_list,
-                               path_preference, false, ecmp_load_balance,
-                               false);
+        ControllerVmRoute *data = NULL;
+
+        if (addr.is_v4())
+            data = ControllerVmRoute::MakeControllerVmRoute(bgp_peer_id(),
+                                   agent_->fabric_vrf_name(), agent_->router_id(),
+                                   vrf_name, addr, encap, label, vn_list,
+                                   item->entry.security_group_list.security_group,
+                                   tag_list,
+                                   path_preference, false, ecmp_load_balance,
+                                   false);
+        else
+            data = ControllerVmRoute::MakeControllerVmRoute(bgp_peer_id(),
+                                   agent_->fabric_vrf_name(), agent_->v6router_id(),
+                                   vrf_name, addr, encap, label, vn_list,
+                                   item->entry.security_group_list.security_group,
+                                   tag_list,
+                                   path_preference, false, ecmp_load_balance,
+                                   false);
+        
         rt_table->AddRemoteVmRouteReq(bgp_peer_id(), vrf_name, prefix_addr,
                                       prefix_len, data);
         return;
@@ -1181,6 +1205,7 @@ void AgentXmppChannel::AddRoute(string vrf_name, IpAddress prefix_addr,
     VnListType vn_list;
     GetVnList(item->entry.next_hops.next_hop, &vn_list);
     if (IsEcmp(item->entry.next_hops.next_hop)) {
+        //TODO: guwei.ecmp route
         AddInetEcmpRoute(vrf_name, prefix_addr, prefix_len, item, vn_list);
     } else {
         AddRemoteRoute(vrf_name, prefix_addr, prefix_len, item, vn_list);
@@ -1245,7 +1270,7 @@ void AgentXmppChannel::ReceiveBgpMessage(std::auto_ptr<XmlBase> impl) {
         return;
     }
     if (atoi(safi) == BgpAf::Unicast) {
-        //ReceiveV4V6Update(pugi);
+        ReceiveV4V6Update(pugi);
         return;
     }
     CONTROLLER_TRACE (Trace, GetBgpPeerName(), vrf_name,

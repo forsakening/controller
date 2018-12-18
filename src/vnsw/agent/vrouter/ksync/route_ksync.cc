@@ -1112,8 +1112,6 @@ void VrfKSyncObject::AddIpMacBinding(VrfEntry *vrf, const IpAddress &ip,
     if (state == NULL)
         return;
 
-    LOG(DEBUG,"zx-test,AddIpMacBinding, ip: "<< ip.to_string() << "mac :" << mac.ToString() << endl);
-
     IpToMacBinding::iterator it =
         state->ip_mac_binding_.find(std::make_pair(ip, ethernet_tag));
 

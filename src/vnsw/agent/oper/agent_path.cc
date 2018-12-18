@@ -129,6 +129,8 @@ bool AgentPath::ChangeNH(Agent *agent, NextHop *nh) {
         ret = true;
     }
 
+    LOG(DEBUG,"zx-test,AgentPath::ChangeNH, NH: " << nh->id()<< endl);
+    
     if (peer_ && (peer_->GetType() == Peer::ECMP_PEER) &&
         (label_ != MplsTable::kInvalidLabel)) {
         if (RebakeLabel(agent->mpls_table(), label_, nh))

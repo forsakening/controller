@@ -288,9 +288,21 @@ bool ControllerVmRoute::AddChangePathExtended(Agent *agent, AgentPath *path,
  #endif
 
     agent->nexthop_table()->Process(nh_req_);
-    TunnelNHKey key(agent->fabric_vrf_name(), agent->router_id(), tunnel_dest_,
-                    false, new_tunnel_type);
-    nh = static_cast<NextHop *>(agent->nexthop_table()->FindActiveEntry(&key));
+
+    //zx-ipv6 TODO tunnel_dest_ only one 
+    if (tunnel_dest_.is_v4())
+    {
+        TunnelNHKey key(agent->fabric_vrf_name(), agent->router_id(), tunnel_dest_,
+                        false, new_tunnel_type);
+        nh = static_cast<NextHop *>(agent->nexthop_table()->FindActiveEntry(&key));
+    }
+    else
+    {
+        TunnelNHKey key(agent->fabric_vrf_name(), agent->v6router_id(), tunnel_dest_,
+                        false, new_tunnel_type);
+        nh = static_cast<NextHop *>(agent->nexthop_table()->FindActiveEntry(&key));
+    }
+    
     path->set_tunnel_dest(tunnel_dest_);
 
     if (path->tunnel_type() != new_tunnel_type) {
