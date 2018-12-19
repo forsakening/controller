@@ -1770,53 +1770,96 @@ bool AgentXmppChannel::ControllerSendV4V6UnicastRouteCommon(AgentRoute *route,
     //Build the DOM tree
     auto_ptr<XmlBase> impl(XmppStanza::AllocXmppXmlImpl());
     XmlPugi *pugi = reinterpret_cast<XmlPugi *>(impl.get());
-    autogen::NextHopType nh;
     stringstream rstr;
+
+    //zx-ipv6 
+    //v4v6-dual-stack send dual nexthop 
 
     if (type == Agent::INET4_UNICAST) {
         item.entry.nlri.af = BgpAf::IPv4;
+    } else {
+        item.entry.nlri.af = BgpAf::IPv6; 
+    }
+    
+    //v4
+    if (agent_->router_id().to_string() != "0.0.0.0")
+    {
+        autogen::NextHopType nh;
         string rtr(agent_->router_id().to_string());
         nh.af = BgpAf::IPv4;
         nh.address = rtr;
-    } else {
-        item.entry.nlri.af = BgpAf::IPv6; 
+        nh.label = mpls_label;
+
+        if (bmap & TunnelType::VxlanType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("vxlan");
+        }
+        if (bmap & TunnelType::GREType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
+        }
+        if (bmap & TunnelType::UDPType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
+        }
+#if 0
+        if (bmap & TunnelType::NativeType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("native");
+        }
+#endif
+        if (tag_list && tag_list->size()) {
+            nh.tag_list.tag = *tag_list;
+        }
+
+        for (VnListType::const_iterator vnit = vn_list.begin();
+             vnit != vn_list.end(); ++vnit) {
+            nh.virtual_network = *vnit;
+            item.entry.next_hops.next_hop.push_back(nh);
+        }
+    }
+
+    //v6
+    if (agent_->v6router_id().to_string() != "::")
+    {
+        autogen::NextHopType nh;
         string rtr(agent_->v6router_id().to_string());
         nh.af = BgpAf::IPv6;
         nh.address = rtr;
-    } 
+        nh.label = mpls_label;
+
+        if (bmap & TunnelType::VxlanType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("vxlan");
+        }
+        if (bmap & TunnelType::GREType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
+        }
+        if (bmap & TunnelType::UDPType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
+        }
+#if 0
+        if (bmap & TunnelType::NativeType()) {
+            nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("native");
+        }
+#endif
+        if (tag_list && tag_list->size()) {
+            nh.tag_list.tag = *tag_list;
+        }
+
+        for (VnListType::const_iterator vnit = vn_list.begin();
+             vnit != vn_list.end(); ++vnit) {
+            nh.virtual_network = *vnit;
+            item.entry.next_hops.next_hop.push_back(nh);
+        }
+    }
+    
     item.entry.nlri.safi = BgpAf::Unicast;
     rstr << route->ToString();
     item.entry.nlri.address = rstr.str();
 
     PopulateEcmpHashFieldsToUse(item, ecmp_load_balance);
 
-    nh.label = mpls_label;
+    
 #if 0
     LOG(DEBUG,"bmap lable SendV4V6UnicastRouteCommon "<<bmap<<" "<<mpls_label<<" addr"<<rstr.str()<<endl);
 #endif
-    if (bmap & TunnelType::VxlanType()) {
-        nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("vxlan");
-    }
-    if (bmap & TunnelType::GREType()) {
-        nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
-    }
-    if (bmap & TunnelType::UDPType()) {
-        nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
-    }
-#if 0
-    if (bmap & TunnelType::NativeType()) {
-        nh.tunnel_encapsulation_list.tunnel_encapsulation.push_back("native");
-    }
-#endif
-    if (tag_list && tag_list->size()) {
-        nh.tag_list.tag = *tag_list;
-    }
-
-    for (VnListType::const_iterator vnit = vn_list.begin();
-         vnit != vn_list.end(); ++vnit) {
-        nh.virtual_network = *vnit;
-        item.entry.next_hops.next_hop.push_back(nh);
-    }
+    
 
     if (sg_list && sg_list->size()) {
         item.entry.security_group_list.security_group = *sg_list;
@@ -2126,7 +2169,7 @@ bool AgentXmppChannel::BuildEvpnUnicastMessage(EnetItemType &item,
 
     autogen::EnetNextHopType nh;
     if (nh_ip->is_v4())
-    nh.af = Address::INET;
+        nh.af = Address::INET;
     else
         nh.af = Address::INET6;
     nh.address = nh_ip->to_string();
