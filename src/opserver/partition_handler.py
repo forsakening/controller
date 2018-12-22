@@ -729,7 +729,7 @@ class PartitionHandler(gevent.Greenlet):
                     consumer.assign([common.TopicPartition(self._topic,0)])
                 except Exception as ex:
                     self.part_cur_time = time.time()
-                    if slef.part_prev_time == 0 or self.part_cur_time - self.part_prev_time > 60:
+                    if self.part_prev_time == 0 or self.part_cur_time - self.part_prev_time > 60:
                         self.part_prev_time = self.part_cur_time
                         template = "Consumer Failure {0} occured. Arguments:\n{1!r}"
                         messag = template.format(type(ex).__name__, ex.args)
@@ -823,8 +823,10 @@ class UveStreamProc(PartitionHandler):
         self._callback = callback
         self._partno = partition
         self._host_ip = host_ip
-        self._ip_code, = struct.unpack('>I', socket.inet_pton(
-                                        socket.AF_INET, host_ip))
+        if IPy.IP(host_ip).version() == 6:
+            self._ip_code = struct.unpack('>IIII', socket.inet_pton(socket.AF_INET6, host_ip))
+        else:
+            self._ip_code = struct.unpack('>I', socket.inet_pton(socket.AF_INET, host_ip))
         self.disc_rset = set()
         self._resource_cb = rsc
         self._aginst = aginst
@@ -911,7 +913,7 @@ class UveStreamProc(PartitionHandler):
                         self._uvedb[kcoll][kgen][tab][rkey][typ] = {}
                         self._uvedb[kcoll][kgen][tab][rkey][typ]["c"] = 0
                         self._uvedb[kcoll][kgen][tab][rkey][typ]["u"] = \
-                                uuid.uuid1(self._ip_code)
+                                uuid.uuid1(self._ip_code[0])
                         # TODO: for loading only specific types:
                         #       uves[kk][typ] = contents
                     
@@ -1002,7 +1004,7 @@ class UveStreamProc(PartitionHandler):
                     self._uvedb[coll][gen][tab][rkey][uv["type"]] = {}
                     self._uvedb[coll][gen][tab][rkey][uv["type"]]["c"] = 1
                     self._uvedb[coll][gen][tab][rkey][uv["type"]]["u"] = \
-                        uuid.uuid1(self._ip_code)
+                        uuid.uuid1(self._ip_code[0])
             chg[uv["key"]] = { uv["type"] : uv["value"] }
 
             # Record stats on the input UVE Notifications
