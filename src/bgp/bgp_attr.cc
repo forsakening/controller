@@ -400,14 +400,27 @@ EdgeDiscoverySpec::~EdgeDiscoverySpec() {
     STLDeleteValues(&edge_list);
 }
 
-Ip4Address EdgeDiscoverySpec::Edge::GetIp4Address() const {
-    return Ip4Address(get_value(&address[0], 4));
+IpAddress EdgeDiscoverySpec::Edge::GetIpAddress() const {
+    if (address.size() == 4) {
+        return Ip4Address(get_value(&address[0], 4));
+    } else if (address.size() == 16) {
+        Ip6Address::bytes_type bt = { { 0 } };
+        copy(address.begin(), address.begin() + sizeof(bt), bt.begin());
+        return Ip6Address(bt);
+    }
+    return Ip4Address();
 }
 
-void EdgeDiscoverySpec::Edge::SetIp4Address(Ip4Address addr) {
-    address.resize(4, 0);
-    const Ip4Address::bytes_type &addr_bytes = addr.to_bytes();
-    std::copy(addr_bytes.begin(), addr_bytes.begin() + 4, address.begin());
+void EdgeDiscoverySpec::Edge::SetIpAddress(IpAddress addr) {
+    if (addr.is_v4()) {
+        address.resize(4, 0);
+        const Ip4Address::bytes_type &bytes = addr.to_v4().to_bytes();
+        std::copy(bytes.begin(), bytes.begin() + 4, address.begin());
+    } else {
+        address.resize(16, 0);
+        const Ip6Address::bytes_type &bytes = addr.to_v6().to_bytes();
+        std::copy(bytes.begin(), bytes.begin() + 16, address.begin());
+    }
 }
 
 void EdgeDiscoverySpec::Edge::GetLabels(
@@ -456,7 +469,7 @@ std::string EdgeDiscoverySpec::ToString() const {
         const Edge *edge = *it;
         uint32_t first_label, last_label;
         edge->GetLabels(&first_label, &last_label);
-        oss << " Edge[" << idx << "] = (" << edge->GetIp4Address() << ", ";
+        oss << " Edge[" << idx << "] = (" << edge->GetIpAddress() << ", ";
         oss << first_label << "-" << last_label << ")";
     }
 
@@ -475,7 +488,7 @@ size_t EdgeDiscoverySpec::EncodeLength() const {
 }
 
 EdgeDiscovery::Edge::Edge(const EdgeDiscoverySpec::Edge *spec_edge) {
-    address = spec_edge->GetIp4Address();
+    address = spec_edge->GetIpAddress();
     uint32_t first_label, last_label;
     spec_edge->GetLabels(&first_label, &last_label);
     label_block = new LabelBlock(first_label, last_label);
@@ -548,26 +561,50 @@ EdgeForwardingSpec:: ~EdgeForwardingSpec() {
     STLDeleteValues(&edge_list);
 }
 
-Ip4Address EdgeForwardingSpec::Edge::GetInboundIp4Address() const {
-    return Ip4Address(get_value(&inbound_address[0], 4));
+IpAddress EdgeForwardingSpec::Edge::GetInboundIpAddress() const {
+    if (inbound_address.size() == 4) {
+        return Ip4Address(get_value(&inbound_address[0], 4));
+    } else if (inbound_address.size() == 16) {
+        Ip6Address::bytes_type bt = { { 0 } };
+        copy(inbound_address.begin(), inbound_address.begin() + sizeof(bt), bt.begin());
+        return Ip6Address(bt);
+    }
+    return Ip4Address();
 }
 
-Ip4Address EdgeForwardingSpec::Edge::GetOutboundIp4Address() const {
-    return Ip4Address(get_value(&outbound_address[0], 4));
+IpAddress EdgeForwardingSpec::Edge::GetOutboundIpAddress() const {
+    if (outbound_address.size() == 4) {
+        return Ip4Address(get_value(&outbound_address[0], 4));
+    } else if (outbound_address.size() == 16) {
+        Ip6Address::bytes_type bt = { { 0 } };
+        copy(outbound_address.begin(), outbound_address.begin() + sizeof(bt), bt.begin());
+        return Ip6Address(bt);
+    }
+    return Ip4Address();
 }
 
-void EdgeForwardingSpec::Edge::SetInboundIp4Address(Ip4Address addr) {
-    inbound_address.resize(4, 0);
-    const Ip4Address::bytes_type &addr_bytes = addr.to_bytes();
-    std::copy(addr_bytes.begin(), addr_bytes.begin() + 4,
-        inbound_address.begin());
+void EdgeForwardingSpec::Edge::SetInboundIpAddress(IpAddress addr) {
+    if (addr.is_v4()) {
+        inbound_address.resize(4, 0);
+        const Ip4Address::bytes_type &addr_bytes = addr.to_v4().to_bytes();
+        std::copy(addr_bytes.begin(), addr_bytes.begin() + 4, inbound_address.begin());
+    } else {
+        inbound_address.resize(16, 0);
+        const Ip6Address::bytes_type &addr_bytes = addr.to_v6().to_bytes();
+        std::copy(addr_bytes.begin(), addr_bytes.begin() + 16, inbound_address.begin());
+    }
 }
 
-void EdgeForwardingSpec::Edge::SetOutboundIp4Address(Ip4Address addr) {
-    outbound_address.resize(4, 0);
-    const Ip4Address::bytes_type &addr_bytes = addr.to_bytes();
-    std::copy(addr_bytes.begin(), addr_bytes.begin() + 4,
-        outbound_address.begin());
+void EdgeForwardingSpec::Edge::SetOutboundIpAddress(IpAddress addr) {
+    if (addr.is_v4()) {
+        outbound_address.resize(4, 0);
+        const Ip4Address::bytes_type &addr_bytes = addr.to_v4().to_bytes();
+        std::copy(addr_bytes.begin(), addr_bytes.begin() + 4, outbound_address.begin());
+    } else {
+        outbound_address.resize(16, 0);
+        const Ip6Address::bytes_type &addr_bytes = addr.to_v6().to_bytes();
+        std::copy(addr_bytes.begin(), addr_bytes.begin() + 16, outbound_address.begin());
+    }
 }
 
 struct EdgeForwardingSpecEdgeCompare {
@@ -605,9 +642,9 @@ std::string EdgeForwardingSpec::ToString() const {
          it != edge_list.end(); ++it, ++idx) {
         const Edge *edge = *it;
         oss << " Edge[" << idx << "] = (";
-        oss << "InAddress=" << edge->GetInboundIp4Address() << ", ";
+        oss << "InAddress=" << edge->GetInboundIpAddress() << ", ";
         oss << "InLabel=" << edge->inbound_label << ", ";
-        oss << "OutAddress=" << edge->GetOutboundIp4Address() << ", ";
+        oss << "OutAddress=" << edge->GetOutboundIpAddress() << ", ";
         oss << "OutLabel=" << edge->outbound_label << ")";
     }
 
@@ -627,8 +664,8 @@ size_t EdgeForwardingSpec::EncodeLength() const {
 }
 
 EdgeForwarding::Edge::Edge(const EdgeForwardingSpec::Edge *spec_edge) {
-    inbound_address = spec_edge->GetInboundIp4Address();
-    outbound_address = spec_edge->GetOutboundIp4Address();
+    inbound_address = spec_edge->GetInboundIpAddress();
+    outbound_address = spec_edge->GetOutboundIpAddress();
     inbound_label = spec_edge->inbound_label;
     outbound_label = spec_edge->outbound_label;
 }

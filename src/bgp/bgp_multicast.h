@@ -103,7 +103,7 @@ public:
     uint8_t level() const { return level_; }
     uint32_t label() const { return label_; }
     const LabelBlock *label_block() const { return label_block_.get(); }
-    Ip4Address address() const { return address_; }
+    IpAddress address() const { return address_; }
     std::vector<std::string> encap() const { return encap_; }
     ErmVpnRoute *route() { return route_; }
     const RouteDistinguisher &route_distinguisher() const { return rd_; }
@@ -124,7 +124,7 @@ private:
     uint8_t level_;
     LabelBlockPtr label_block_;
     uint32_t label_;
-    Ip4Address address_;
+    IpAddress address_;
     RouteDistinguisher rd_;
     Ip4Address router_id_;
     std::vector<std::string> encap_;

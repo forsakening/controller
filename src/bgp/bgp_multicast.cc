@@ -55,7 +55,7 @@ McastForwarder::McastForwarder(McastSGEntry *sg_entry, ErmVpnRoute *route)
       route_(route),
       global_tree_route_(NULL),
       label_(0),
-      address_(0),
+      address_(Ip4Address()),
       rd_(route->GetPrefix().route_distinguisher()),
       router_id_(route->GetPrefix().router_id()) {
     const BgpPath *path = route->BestPath();
@@ -63,7 +63,7 @@ McastForwarder::McastForwarder(McastSGEntry *sg_entry, ErmVpnRoute *route)
 
     if (route_->GetPrefix().type() == ErmVpnPrefix::NativeRoute) {
         level_ = McastTreeManager::LevelNative;
-        address_ = attr->nexthop().to_v4();
+        address_ = attr->nexthop();
         label_block_ = attr->label_block();
     } else {
         level_ = McastTreeManager::LevelLocal;
@@ -236,9 +236,9 @@ void McastForwarder::AddGlobalTreeRoute() {
     for (McastForwarderList::const_iterator it = tree_links_.begin();
          it != tree_links_.end(); ++it) {
         EdgeForwardingSpec::Edge *edge = new EdgeForwardingSpec::Edge;
-        edge->SetInboundIp4Address(address_);
+        edge->SetInboundIpAddress(address_);
         edge->inbound_label = label_;
-        edge->SetOutboundIp4Address((*it)->address());
+        edge->SetOutboundIpAddress((*it)->address());
         edge->outbound_label = (*it)->label();
         efspec.edge_list.push_back(edge);
     }
@@ -497,7 +497,7 @@ void McastSGEntry::AddLocalTreeRoute() {
     EdgeDiscoverySpec edspec;
     for (int idx = 1; idx <= McastTreeManager::kDegree - 1; ++idx) {
         EdgeDiscoverySpec::Edge *edge = new EdgeDiscoverySpec::Edge;
-        edge->SetIp4Address(forest_node_->address());
+        edge->SetIpAddress(forest_node_->address());
         edge->SetLabels(forest_node_->label(), forest_node_->label());
         edspec.edge_list.push_back(edge);
     }

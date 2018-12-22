@@ -189,7 +189,7 @@ private:
         for (int i = rand() % 64; i > 0; i--) {
             boost::system::error_code ec;
             EdgeDiscoverySpec::Edge *edge = new EdgeDiscoverySpec::Edge;
-            edge->SetIp4Address(Ip4Address::from_string("10.1.1.1", ec));
+            edge->SetIpAddress(Ip4Address::from_string("10.1.1.1", ec));
             edge->SetLabels(10000, 20000);
             edspec->edge_list.push_back(edge);
         }
@@ -201,9 +201,9 @@ private:
         for (int i = rand() % 64; i > 0; i--) {
             boost::system::error_code ec;
             EdgeForwardingSpec::Edge *edge = new EdgeForwardingSpec::Edge;
-            edge->SetInboundIp4Address(Ip4Address::from_string("10.1.1.1", ec));
+            edge->SetInboundIpAddress(Ip4Address::from_string("10.1.1.1", ec));
             edge->inbound_label = rand() % 10000;
-            edge->SetOutboundIp4Address(Ip4Address::from_string("10.1.1.2", ec));
+            edge->SetOutboundIpAddress(Ip4Address::from_string("10.1.1.2", ec));
             edge->outbound_label = rand() % 10000;
             efspec->edge_list.push_back(edge);
         }
@@ -1223,7 +1223,7 @@ TEST_F(EncodeLengthTest, EdgeDiscovery) {
             EdgeDiscoverySpec::Edge *edge = new EdgeDiscoverySpec::Edge;
             boost::system::error_code err;
             Ip4Address addr = Ip4Address::from_string("192.168.0.1", err);
-            edge->SetIp4Address(addr);
+            edge->SetIpAddress(addr);
             edge->SetLabels(10000, 20000);
             spec->edge_list.push_back(edge);
         }
@@ -1235,9 +1235,9 @@ TEST_F(EncodeLengthTest, EdgeDiscovery) {
 
 static void BuildEdge(EdgeForwardingSpec::Edge *edge) {
     boost::system::error_code err;
-    edge->SetInboundIp4Address(Ip4Address::from_string("10.1.1.1", err));
+    edge->SetInboundIpAddress(Ip4Address::from_string("10.1.1.1", err));
     edge->inbound_label = 10000;
-    edge->SetOutboundIp4Address(Ip4Address::from_string("10.1.1.2", err));
+    edge->SetOutboundIpAddress(Ip4Address::from_string("10.1.1.2", err));
     edge->outbound_label = 10001;
 }
 

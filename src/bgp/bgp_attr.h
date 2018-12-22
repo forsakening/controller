@@ -413,8 +413,8 @@ struct EdgeDiscoverySpec : public BgpAttribute {
     virtual size_t EncodeLength() const;
 
     struct Edge : public ParseObject {
-        Ip4Address GetIp4Address() const;
-        void SetIp4Address(Ip4Address addr);
+        IpAddress GetIpAddress() const;
+        void SetIpAddress(IpAddress addr);
         void GetLabels(uint32_t *first_label, uint32_t *last_label) const;
         void SetLabels(uint32_t first_label, uint32_t last_label);
 
@@ -443,7 +443,7 @@ public:
 
     struct Edge {
         explicit Edge(const EdgeDiscoverySpec::Edge *edge_spec);
-        Ip4Address address;
+        IpAddress address;
         LabelBlockPtr label_block;
         bool operator<(const Edge &rhs) const;
     };
@@ -518,10 +518,10 @@ struct EdgeForwardingSpec : public BgpAttribute {
     virtual size_t EncodeLength() const;
 
     struct Edge : public ParseObject {
-        Ip4Address GetInboundIp4Address() const;
-        Ip4Address GetOutboundIp4Address() const;
-        void SetInboundIp4Address(Ip4Address addr);
-        void SetOutboundIp4Address(Ip4Address addr);
+        IpAddress GetInboundIpAddress() const;
+        IpAddress GetOutboundIpAddress() const;
+        void SetInboundIpAddress(IpAddress addr);
+        void SetOutboundIpAddress(IpAddress addr);
 
         int address_len;
         std::vector<uint8_t> inbound_address, outbound_address;
@@ -551,7 +551,7 @@ public:
     struct Edge {
         explicit Edge(const EdgeForwardingSpec::Edge *edge_spec);
         bool operator<(const Edge &rhs) const;
-        Ip4Address inbound_address, outbound_address;
+        IpAddress inbound_address, outbound_address;
         uint32_t inbound_label, outbound_label;
     };
     typedef std::vector<Edge *> EdgeList;
