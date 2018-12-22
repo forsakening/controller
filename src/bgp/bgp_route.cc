@@ -483,11 +483,11 @@ static void FillEdgeForwardingInfo(const EdgeForwarding *edge_forwarding,
         const EdgeForwardingSpec::Edge *edge = *it;
         ShowEdgeForwarding show_ef;
         ostringstream oss;
-        oss << edge->GetInboundIp4Address() << ":" << edge->inbound_label;
+        oss << edge->GetInboundIpAddress() << ":" << edge->inbound_label;
         show_ef.set_in_address_label(oss.str());
         oss.str("");
         oss.clear();
-        oss << edge->GetOutboundIp4Address() << ":" << edge->outbound_label;
+        oss << edge->GetOutboundIpAddress() << ":" << edge->outbound_label;
         show_ef.set_out_address_label(oss.str());
         show_ef_list.push_back(show_ef);
     }
@@ -507,7 +507,7 @@ static void FillEdgeDiscoveryInfo(const EdgeDiscovery *edge_discovery,
         ShowEdgeDiscovery show_ed;
         ostringstream oss;
         uint32_t first_label, last_label;
-        oss << edge->GetIp4Address();
+        oss << edge->GetIpAddress();
         show_ed.set_address(oss.str());
         oss.str("");
         oss.clear();
