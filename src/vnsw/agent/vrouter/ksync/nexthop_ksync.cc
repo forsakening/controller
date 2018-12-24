@@ -849,6 +849,8 @@ int NHKSyncEntry::Encode(sandesh_op::type op, char *buf, int buf_len) {
                 encoder.set_nhr_tun_sip6(sip_vector);
                 encoder.set_nhr_tun_dip6(dip_vector);
             }
+            else
+                assert(0);
             
             encoder.set_nhr_encap_family(ETHERTYPE_ARP);
 

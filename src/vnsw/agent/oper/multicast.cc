@@ -755,27 +755,58 @@ void MulticastHandler::TriggerRemoteRouteChange(MulticastGroupObject *obj,
     uint32_t route_tunnel_bmap = TunnelType::AllType();
     for (TunnelOlist::const_iterator it = olist.begin();
          it != olist.end(); it++) {
-        TunnelNHKey *key =
+      
+        //zx-ipv6
+        if (agent_->router_id().to_string() != "0.0.0.0")
+        {
+            TunnelNHKey *key =
             new TunnelNHKey(agent_->fabric_vrf_name(),
                             agent_->router_id(),
                             it->daddr_, false,
                             TunnelType::ComputeType(it->tunnel_bmap_));
-        TunnelNHData *tnh_data = new TunnelNHData();
-        DBRequest req;
-        req.oper = DBRequest::DB_ENTRY_ADD_CHANGE;
-        req.key.reset(key);
-        req.data.reset(tnh_data);
-        agent_->nexthop_table()->Enqueue(&req);
+            TunnelNHData *tnh_data = new TunnelNHData();
+            DBRequest req;
+            req.oper = DBRequest::DB_ENTRY_ADD_CHANGE;
+            req.key.reset(key);
+            req.data.reset(tnh_data);
+            agent_->nexthop_table()->Enqueue(&req);
 
-        MCTRACE(Log, "Enqueue add TOR TUNNEL ",
-                agent_->fabric_vrf_name(),
-                it->daddr_.to_string(), it->label_);
-
-        ComponentNHKeyPtr component_key_ptr(new ComponentNHKey(it->label_,
+            MCTRACE(Log, "Enqueue add TOR TUNNEL ",
                     agent_->fabric_vrf_name(),
-                    agent_->router_id(), it->daddr_,
-                    false, it->tunnel_bmap_));
-        component_nh_key_list.push_back(component_key_ptr);
+                    it->daddr_.to_string(), it->label_);
+        
+            ComponentNHKeyPtr component_key_ptr(new ComponentNHKey(it->label_,
+                        agent_->fabric_vrf_name(),
+                        agent_->router_id(), it->daddr_,
+                        false, it->tunnel_bmap_));
+            component_nh_key_list.push_back(component_key_ptr);
+        }
+
+        if (agent_->v6router_id().to_string() != "::")
+        {
+            TunnelNHKey *key =
+            new TunnelNHKey(agent_->fabric_vrf_name(),
+                            agent_->v6router_id(),
+                            it->daddr_, false,
+                            TunnelType::ComputeType(it->tunnel_bmap_));
+            TunnelNHData *tnh_data = new TunnelNHData();
+            DBRequest req;
+            req.oper = DBRequest::DB_ENTRY_ADD_CHANGE;
+            req.key.reset(key);
+            req.data.reset(tnh_data);
+            agent_->nexthop_table()->Enqueue(&req);
+
+            MCTRACE(Log, "Enqueue add TOR TUNNEL ",
+                    agent_->fabric_vrf_name(),
+                    it->daddr_.to_string(), it->label_);
+        
+            ComponentNHKeyPtr component_key_ptr(new ComponentNHKey(it->label_,
+                        agent_->fabric_vrf_name(),
+                        agent_->v6router_id(), it->daddr_,
+                        false, it->tunnel_bmap_));
+            component_nh_key_list.push_back(component_key_ptr);
+        }
+        
         route_tunnel_bmap = it->tunnel_bmap_;
     }
 

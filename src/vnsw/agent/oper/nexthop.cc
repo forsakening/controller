@@ -590,17 +590,32 @@ void InterfaceNH::CreateL3VmInterfaceNH(const uuid &intf_uuid,
                                         const string &vrf_name,
                                         bool learning_enabled,
                                         const string &intf_name) {
+
+    //zx-ipv6
+
+    //v4 flags
     AddInterfaceNH(intf_uuid, dmac, InterfaceNHFlags::INET4, true, vrf_name,
                    learning_enabled, false, false, intf_name);
     AddInterfaceNH(intf_uuid, dmac, InterfaceNHFlags::INET4, false, vrf_name,
                    learning_enabled, false, false, intf_name);
+
+    //v6 flags
+    //AddInterfaceNH(intf_uuid, dmac, InterfaceNHFlags::INET6, true, vrf_name,
+    //               learning_enabled, false, false, intf_name);
+    //AddInterfaceNH(intf_uuid, dmac, InterfaceNHFlags::INET6, false, vrf_name,
+    //               learning_enabled, false, false, intf_name);
 }
 
 void InterfaceNH::DeleteL3InterfaceNH(const uuid &intf_uuid,
                                       const MacAddress &mac,
                                       const string &intf_name) {
+    //v4 flags
     DeleteNH(intf_uuid, false, InterfaceNHFlags::INET4, mac, intf_name);
     DeleteNH(intf_uuid, true, InterfaceNHFlags::INET4, mac, intf_name);
+
+    //v6 flags
+    //DeleteNH(intf_uuid, false, InterfaceNHFlags::INET6, mac, intf_name);
+    //DeleteNH(intf_uuid, true, InterfaceNHFlags::INET6, mac, intf_name);
 }
 
 void InterfaceNH::CreateL2VmInterfaceNH(const uuid &intf_uuid,
@@ -627,9 +642,17 @@ void InterfaceNH::CreateMulticastVmInterfaceNH(const uuid &intf_uuid,
                                                const MacAddress &dmac,
                                                const string &vrf_name,
                                                const string &intf_name) {
+    //zx-ipv6
+
+    //v4 flags
     AddInterfaceNH(intf_uuid, dmac, (InterfaceNHFlags::INET4 |
                                      InterfaceNHFlags::MULTICAST), false,
                    vrf_name, false, true, false, intf_name);
+
+    //v6 flags
+    //AddInterfaceNH(intf_uuid, dmac, (InterfaceNHFlags::INET6 |
+    //                                 InterfaceNHFlags::MULTICAST), false,
+    //               vrf_name, false, true, false, intf_name);
 }
 
 void InterfaceNH::DeleteMulticastVmInterfaceNH(const uuid &intf_uuid,
@@ -638,6 +661,11 @@ void InterfaceNH::DeleteMulticastVmInterfaceNH(const uuid &intf_uuid,
                                 InterfaceNHFlags::INET4),
                                 MacAddress::BroadcastMac(),
                                 intf_name);
+
+    //DeleteNH(intf_uuid, false, (InterfaceNHFlags::MULTICAST |
+    //                            InterfaceNHFlags::INET6),
+    //                            MacAddress::BroadcastMac(),
+    //                            intf_name);
 }
 
 void InterfaceNH::DeleteNH(const uuid &intf_uuid, bool policy,
@@ -658,10 +686,18 @@ void InterfaceNH::DeleteVmInterfaceNHReq(const uuid &intf_uuid,
                                          const string &intf_name) {
     DeleteNH(intf_uuid, false, InterfaceNHFlags::BRIDGE, mac, intf_name);
     DeleteNH(intf_uuid, true, InterfaceNHFlags::BRIDGE, mac, intf_name);
+
+    //v4
     DeleteNH(intf_uuid, false, InterfaceNHFlags::INET4, mac, intf_name);
     DeleteNH(intf_uuid, true, InterfaceNHFlags::INET4, mac, intf_name);
-    DeleteNH(intf_uuid, false, InterfaceNHFlags::MULTICAST,
+    DeleteNH(intf_uuid, false, InterfaceNHFlags::MULTICAST | InterfaceNHFlags::INET4,
              MacAddress::BroadcastMac(), intf_name);
+
+    //v6
+    //DeleteNH(intf_uuid, false, InterfaceNHFlags::INET6, mac, intf_name);
+    //DeleteNH(intf_uuid, true, InterfaceNHFlags::INET6, mac, intf_name);
+    //DeleteNH(intf_uuid, false, InterfaceNHFlags::MULTICAST | InterfaceNHFlags::INET6,
+    //         MacAddress::BroadcastMac(), intf_name);
 }
 
 void InterfaceNH::CreateInetInterfaceNextHop(const string &ifname,

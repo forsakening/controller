@@ -25,9 +25,10 @@ do {                                                                            
 class BgpPeer;
 
 struct OlistTunnelEntry {
+    //zx-ipv6
     OlistTunnelEntry(const boost::uuids::uuid &device_uuid,
                      uint32_t label,
-                     const Ip4Address &addr,
+                     const IpAddress &addr,
                      TunnelType::TypeBmap bmap) : 
         device_uuid_(device_uuid),
         label_(label),
@@ -37,7 +38,7 @@ struct OlistTunnelEntry {
 
     boost::uuids::uuid device_uuid_;
     uint32_t label_;
-    Ip4Address daddr_;
+    IpAddress daddr_;
     TunnelType::TypeBmap tunnel_bmap_;
 };
 

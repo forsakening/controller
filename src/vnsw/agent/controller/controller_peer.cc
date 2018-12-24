@@ -436,7 +436,7 @@ void AgentXmppChannel::ReceiveMulticastUpdate(XmlPugi *pugi) {
             TunnelType::TypeBmap encap = agent_->controller()->
                 GetTypeBitmap(nh.tunnel_encapsulation_list);
             olist.push_back(OlistTunnelEntry(nil_uuid(), label,
-                                             addr.to_v4(), encap));
+                                             addr, encap));
         }
 
         agent_->oper_db()->multicast()->ModifyFabricMembers(
@@ -694,17 +694,14 @@ static bool FillEvpnOlist(Agent *agent,
         TunnelType::TypeBmap encap = agent->controller()->
             GetTypeBitmap(olist.next_hop[i].tunnel_encapsulation_list);
         tunnel_olist->push_back(OlistTunnelEntry(nil_uuid(), label,
-                                                 addr.to_v4(), encap));
+                                                 addr, encap));
     }
     return true;
 }
 
 void AgentXmppChannel::AddMulticastEvpnRoute(const string &vrf_name,
                                              const MacAddress &mac,
-                                             EnetItemType *item) {
-    //zx-ipv6 TODO
-    return;
-                                             
+                                             EnetItemType *item) {                                            
     //Traverse Leaf Olist
     TunnelOlist leaf_olist;
     TunnelOlist olist;
@@ -1261,7 +1258,8 @@ void AgentXmppChannel::ReceiveBgpMessage(std::auto_ptr<XmlBase> impl) {
         return;
     }
 
-    if (atoi(af) == BgpAf::IPv4 && atoi(safi) == BgpAf::Mcast) {
+    // zx-ipv6
+    if ((atoi(af) == BgpAf::IPv4 || atoi(af) == BgpAf::IPv6) && atoi(safi) == BgpAf::Mcast) {
         ReceiveMulticastUpdate(pugi);
         return;
     }
@@ -2370,15 +2368,33 @@ bool AgentXmppChannel::ControllerSendMcastRouteCommon(AgentRoute *route,
     item.entry.nlri.group = route->GetAddressString();
     item.entry.nlri.source = "0.0.0.0";
 
-    autogen::McastNextHopType item_nexthop;
-    item_nexthop.af = BgpAf::IPv4;
-    string rtr(agent_->router_id().to_string());
-    item_nexthop.address = rtr;
-    item_nexthop.label = GetMcastLabelRange();
-    item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
-    item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
-    item.entry.next_hops.next_hop.push_back(item_nexthop);
+    //zx-ipv6
+    if (agent_->router_id().to_string() != "0.0.0.0")
+    {
+        autogen::McastNextHopType item_nexthop;
+        item_nexthop.af = BgpAf::IPv4;
+        string rtr(agent_->router_id().to_string());
+        item_nexthop.address = rtr;
+        item_nexthop.label = GetMcastLabelRange();
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("vxlan");
+        item.entry.next_hops.next_hop.push_back(item_nexthop);
+    }
 
+    if (agent_->v6router_id().to_string() != "::")
+    {
+        autogen::McastNextHopType item_nexthop;
+        item_nexthop.af = BgpAf::IPv6;
+        string rtr(agent_->v6router_id().to_string());
+        item_nexthop.address = rtr;
+        item_nexthop.label = GetMcastLabelRange();
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("gre");
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("udp");
+        item_nexthop.tunnel_encapsulation_list.tunnel_encapsulation.push_back("vxlan");
+        item.entry.next_hops.next_hop.push_back(item_nexthop);
+    }
+    
     //Build the pugi tree
     pugi->AddNode("iq", "");
     pugi->AddAttribute("type", "set");

@@ -1496,8 +1496,8 @@ public:
         label_(label), nh_key_(new VlanNHKey(intf_uuid, tag)) {
     }
 
-    ComponentNHKey(int label, const string &vrf_name, const Ip4Address &sip,
-            const Ip4Address &dip, bool policy, TunnelType::TypeBmap bmap) :
+    ComponentNHKey(int label, const string &vrf_name, const IpAddress &sip,
+            const IpAddress &dip, bool policy, TunnelType::TypeBmap bmap) :
         label_(label), nh_key_(new TunnelNHKey(vrf_name, sip, dip, policy,
                                                TunnelType::ComputeType(bmap))) {
     }
