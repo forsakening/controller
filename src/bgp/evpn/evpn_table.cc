@@ -163,12 +163,13 @@ BgpRoute *EvpnTable::RouteReplicate(BgpServer *server,
         if (evpn_prefix.route_distinguisher().IsZero()) {
             evpn_prefix.set_route_distinguisher(new_attr->source_rd());
         }
-
+#if 0
         if (evpn_prefix.type() != EvpnPrefix::IpPrefixRoute) {
             Ip4Address originator_id = new_attr->nexthop().to_v4();
             new_attr = attr_db->ReplaceOriginatorIdAndLocate(
                 new_attr.get(), originator_id);
         }
+#endif
     } else {
         if (evpn_prefix.type() == EvpnPrefix::AutoDiscoveryRoute ||
             evpn_prefix.type() == EvpnPrefix::MacAdvertisementRoute ||
