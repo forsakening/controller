@@ -1530,10 +1530,6 @@ bool BgpXmppChannel::ProcessInet6Item(string vrf_name,
                 TunnelEncap tun_encap(*eit);
                 if (tun_encap.tunnel_encap() == TunnelEncapType::UNSPEC)
                     continue;
-                if (family == Address::INET6 &&
-                    tun_encap.tunnel_encap() == TunnelEncapType::VXLAN) {
-                    continue;
-                }
                 if (family == Address::EVPN &&
                     tun_encap.tunnel_encap() != TunnelEncapType::VXLAN) {
                     continue;
