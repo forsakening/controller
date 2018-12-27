@@ -1070,6 +1070,18 @@ Ip4Address VmInterface::mdata_ip_addr() const {
     return metadata_ip_state_->mdata_ip_->GetLinkLocalIp();
 }
 
+Ip6Address VmInterface::mdata_ip6_addr() const {
+    if (metadata_ip_state_.get() == NULL)
+        return Ip6Address();
+
+    if (metadata_ip_state_->mdata_ip_.get() == NULL) {
+        return Ip6Address();
+    }
+
+    return metadata_ip_state_->mdata_ip_->GetLinkLocalIp6();
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 // ResolveRoute Attribute Routines
 ////////////////////////////////////////////////////////////////////////////

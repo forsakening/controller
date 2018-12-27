@@ -876,6 +876,7 @@ void Interface::SetItfSandeshData(ItfSandeshData &data) const {
         data.set_ip6_addr(vintf->primary_ip6_addr().to_string());
         data.set_mac_addr(vintf->vm_mac().ToString());
         data.set_mdata_ip_addr(vintf->mdata_ip_addr().to_string());
+        data.set_mdata_ip6_addr(vintf->mdata_ip6_addr().to_string());
         data.set_vxlan_id(vintf->vxlan_id());
         if (vintf->policy_enabled()) {
             data.set_policy("Enable");

@@ -202,7 +202,14 @@ void HealthCheckInstanceTask::UpdateInstanceTaskCommand() {
 
     std::stringstream cmd_str;
     cmd_str << kHealthCheckCmd << " -m " << service_->monitor_type();
+    //guwei    
+    if (0 == service_->monitor_type().compare("PING"))
     cmd_str << " -d " << ip_->GetLinkLocalIp().to_string();
+    else if(0 == service_->monitor_type().compare("PING6"))
+        cmd_str << " -d " << ip_->GetLinkLocalIp6().to_string();
+    else
+        cmd_str << " -d " << ip_->GetLinkLocalIp().to_string();
+
     cmd_str << " -t " << service_->timeout() +
                          service_->timeout_usecs() / 1000000;
     cmd_str << " -r " << service_->max_retries();
@@ -462,6 +469,8 @@ HealthCheckService::GetHealthCheckType() const {
         return HealthCheckService::BFD;
     if (monitor_type_.find("HTTP") != std::string::npos)
         return HealthCheckService::HTTP;
+    if (monitor_type_.find("PING6") != std::string::npos)
+        return HealthCheckService::PING6;
     return HealthCheckService::PING;
 }
 

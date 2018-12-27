@@ -150,7 +150,7 @@ int VnswInterfaceListenerLinux::AddAttr(uint8_t *buff, int type, void *data, int
     return 0;
 }
 
-void VnswInterfaceListenerLinux::UpdateLinkLocalRoute(const Ip4Address &addr,
+void VnswInterfaceListenerLinux::UpdateLinkLocalRoute(const IpAddress &addr,
                                                  bool del_rt) {
     struct nlmsghdr *nlh;
     struct rtmsg *rtm;
@@ -173,15 +173,32 @@ void VnswInterfaceListenerLinux::UpdateLinkLocalRoute(const Ip4Address &addr,
     nlh->nlmsg_seq = ++seqno_;
     rtm = (struct rtmsg *) NLMSG_DATA (nlh);
     rtm->rtm_table = RT_TABLE_MAIN;
-    rtm->rtm_family = AF_INET;
+    //rtm->rtm_family = AF_INET;
     rtm->rtm_type = RTN_UNICAST;
     rtm->rtm_protocol = kVnswRtmProto;
     rtm->rtm_scope = RT_SCOPE_LINK;
+    //rtm->rtm_dst_len = 32;
+    if (addr.is_v4()){
+        rtm->rtm_family = AF_INET;
     rtm->rtm_dst_len = 32;
     ipaddr = RT_TABLE_MAIN;
     AddAttr(tx_buf_, RTA_TABLE, (void *) &ipaddr, 4);
-    ipaddr = htonl(addr.to_ulong());
+		ipaddr = htonl(addr.to_v4().to_ulong());
     AddAttr(tx_buf_, RTA_DST, (void *) &ipaddr, 4);
+    }else{
+        /*guwei,add ipv6 unicast .*/
+        rtm->rtm_family = AF_INET6;
+		rtm->rtm_dst_len = 128;
+		ipaddr = RT_TABLE_MAIN;
+		AddAttr(tx_buf_, RTA_TABLE, (void *) &ipaddr, 4);
+        boost::asio::ip::address_v6::bytes_type bytes = addr.to_v6().to_bytes();
+		AddAttr(tx_buf_, RTA_DST, (void *) bytes.data(), 16);
+    }
+    
+    //ipaddr = RT_TABLE_MAIN;
+    //AddAttr(tx_buf_, RTA_TABLE, (void *) &ipaddr, 4);
+    //ipaddr = htonl(addr.to_v4().to_ulong());
+    //AddAttr(tx_buf_, RTA_DST, (void *) &ipaddr, 4);
     int if_index = if_nametoindex(agent_->vhost_interface_name().c_str());
     AddAttr(tx_buf_, RTA_OIF, (void *) &if_index, 4);
 

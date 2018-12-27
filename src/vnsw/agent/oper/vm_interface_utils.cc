@@ -923,7 +923,16 @@ uint32_t VmInterface::GetPbbLabel() const {
 /////////////////////////////////////////////////////////////////////////////
 // Metadata related routines
 /////////////////////////////////////////////////////////////////////////////
-MetaDataIp *VmInterface::GetMetaDataIp(const Ip4Address &ip) const {
+MetaDataIp *VmInterface::GetMetaDataIp(const IpAddress &ip) const {
+    MetaDataIpMap::const_iterator it = metadata_ip_map_.find(ip);
+    if (it != metadata_ip_map_.end()) {
+        return it->second;
+    }
+
+    return NULL;
+}
+
+MetaDataIp *VmInterface::GetMetaDataIp6(const Ip6Address &ip) const {
     MetaDataIpMap::const_iterator it = metadata_ip_map_.find(ip);
     if (it != metadata_ip_map_.end()) {
         return it->second;
@@ -934,13 +943,19 @@ MetaDataIp *VmInterface::GetMetaDataIp(const Ip4Address &ip) const {
 
 void VmInterface::InsertMetaDataIpInfo(MetaDataIp *mip) {
     std::pair<MetaDataIpMap::iterator, bool> ret;
-    ret = metadata_ip_map_.insert(std::pair<Ip4Address, MetaDataIp*>
+    ret = metadata_ip_map_.insert(std::pair<IpAddress, MetaDataIp*>
                                   (mip->GetLinkLocalIp(), mip));
+    assert(ret.second);
+    ret = metadata_ip_map_.insert(std::pair<IpAddress, MetaDataIp*>
+                                  (mip->GetLinkLocalIp6(), mip));
     assert(ret.second);
 }
 
 void VmInterface::DeleteMetaDataIpInfo(MetaDataIp *mip) {
-    std::size_t ret = metadata_ip_map_.erase(mip->GetLinkLocalIp());
+    std::size_t ret;
+    ret = metadata_ip_map_.erase(mip->GetLinkLocalIp());
+    assert(ret != 0);
+    ret = metadata_ip_map_.erase(mip->GetLinkLocalIp6());
     assert(ret != 0);
 }
 

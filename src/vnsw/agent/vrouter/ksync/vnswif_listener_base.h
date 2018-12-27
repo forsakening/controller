@@ -50,27 +50,27 @@ public:
         };
 
         // Constructor for add/delete/change of link-local route
-        Event(Type event, const std::string &interface, const Ip4Address &addr):
+        Event(Type event, const std::string &interface, const IpAddress &addr):
             event_(event), interface_(interface), addr_(addr), plen_(0),
-            gw_(0), flags_(0), protocol_(0) {
+            gw_(), flags_(0), protocol_(0) {
         }
 
         // Constructor for interface add/delete/change notification
         Event(Type event, const std::string &interface, uint32_t flags) :
-            event_(event), interface_(interface), addr_(0), plen_(0),
-            gw_(0), flags_(flags), protocol_(0) {
+            event_(event), interface_(interface), addr_(), plen_(0),
+            gw_(), flags_(flags), protocol_(0) {
         }
 
         // Constructor for interface address add/delete/change notification 
-        Event(Type event, const std::string &interface, const Ip4Address &addr,
+        Event(Type event, const std::string &interface, const IpAddress &addr,
               uint8_t plen, uint32_t flags) :
             event_(event), interface_(interface), addr_(addr), plen_(plen),
-            gw_(0), flags_(flags), protocol_(0) {
+            gw_(), flags_(flags), protocol_(0) {
         }
 
         // Constructor for route add/delete/change notification
-        Event(Type event, const Ip4Address &addr, uint8_t plen,
-              const std::string &interface, const Ip4Address &gw,
+        Event(Type event, const IpAddress &addr, uint8_t plen,
+              const std::string &interface, const IpAddress &gw,
               uint8_t protocol, uint32_t flags) :
             event_(event), interface_(interface), addr_(addr), plen_(plen),
             flags_(flags), protocol_(protocol) {
@@ -78,21 +78,21 @@ public:
 
         Type event_;
         std::string interface_;
-        Ip4Address addr_;
+        IpAddress addr_;
         uint8_t plen_;
-        Ip4Address gw_;
+        IpAddress gw_;
         uint32_t flags_;
         uint8_t protocol_;
     };
 
     struct HostInterfaceEntry {
         HostInterfaceEntry() :
-            addr_(0), plen_(0), link_up_(true), oper_seen_(false),
+            addr_(), plen_(0), link_up_(true), oper_seen_(false),
             host_seen_(false), oper_id_(Interface::kInvalidIndex) {
         }
 
         ~HostInterfaceEntry() { }
-        Ip4Address addr_;
+        IpAddress addr_;
         uint8_t plen_;
         bool link_up_;
         bool oper_seen_;
@@ -102,7 +102,7 @@ public:
 
 protected:
     typedef std::map<std::string, HostInterfaceEntry *> HostInterfaceTable;
-    typedef std::set<Ip4Address> LinkLocalAddressTable;
+    typedef std::set<IpAddress> LinkLocalAddressTable;
 
 public:
     VnswInterfaceListenerBase(Agent *agent);
@@ -127,16 +127,17 @@ protected:
     friend class TestVnswIf;
     void InterfaceNotify(DBTablePartBase *part, DBEntryBase *e);
     void FabricRouteNotify(DBTablePartBase *part, DBEntryBase *e);
+    void FabricRouteIpv6Notify(DBTablePartBase *part, DBEntryBase *e);
 
 // Pure firtuals to be implemented by derivative class
     virtual int CreateSocket() = 0;
     virtual void SyncCurrentState() = 0;
     virtual void RegisterAsyncReadHandler() = 0;
-    virtual void UpdateLinkLocalRoute(const Ip4Address &addr, bool del_rt) = 0;
+    virtual void UpdateLinkLocalRoute(const IpAddress &addr, bool del_rt) = 0;
 
     bool ProcessEvent(Event *re);
 
-    void UpdateLinkLocalRouteAndCount(const Ip4Address &addr, bool del_rt);
+    void UpdateLinkLocalRouteAndCount(const IpAddress &addr, bool del_rt);
     void LinkLocalRouteFromLinkLocalEvent(Event *event);
     void LinkLocalRouteFromRouteEvent(Event *event);
     void AddLinkLocalRoutes();
@@ -162,6 +163,7 @@ protected:
     local::datagram_protocol::socket sock_;
     DBTableBase::ListenerId intf_listener_id_;
     DBTableBase::ListenerId fabric_listener_id_;
+    DBTableBase::ListenerId fabric_ipv6_listener_id_;
     int seqno_;
     bool vhost_intf_up_;
 

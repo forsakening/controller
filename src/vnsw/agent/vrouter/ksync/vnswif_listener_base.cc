@@ -25,7 +25,7 @@ VnswInterfaceListenerBase::VnswInterfaceListenerBase(Agent *agent) :
     agent_(agent), read_buf_(NULL), sock_fd_(-1),
     sock_(*(agent->event_manager())->io_service()),
     intf_listener_id_(DBTableBase::kInvalidId),
-    fabric_listener_id_(DBTableBase::kInvalidId), seqno_(0),
+    fabric_listener_id_(DBTableBase::kInvalidId), fabric_ipv6_listener_id_(DBTableBase::kInvalidId), seqno_(0),
     vhost_intf_up_(false), ll_addr_table_(), revent_queue_(NULL),
     vhost_update_count_(0), ll_add_count_(0), ll_del_count_(0) {
 }
@@ -52,7 +52,10 @@ void VnswInterfaceListenerBase::Init() {
     fabric_listener_id_ = agent_->fabric_inet4_unicast_table()->Register
         (boost::bind(&VnswInterfaceListenerBase::FabricRouteNotify,
                      this, _1, _2));
-
+    //guwei,need listen ipv6 table.
+    fabric_ipv6_listener_id_ = agent_->vrf_table()->GetInet6UnicastRouteTable("default-domain:default-project:ip-fabric:__default__")->Register
+                (boost::bind(&VnswInterfaceListenerBase::FabricRouteIpv6Notify,
+                     this, _1, _2));
 
     /* Allocate Route Event Workqueue */
     revent_queue_ = new WorkQueue<Event *>
@@ -79,6 +82,7 @@ void VnswInterfaceListenerBase::Init() {
 void VnswInterfaceListenerBase::Shutdown() {
     agent_->interface_table()->Unregister(intf_listener_id_);
     agent_->fabric_inet4_unicast_table()->Unregister(fabric_listener_id_);
+    agent_->vrf_table()->GetInet6UnicastRouteTable("default-domain:default-project:ip-fabric:__default__")->Unregister(fabric_ipv6_listener_id_);
     // Expect only one entry for vhost0 during shutdown
     assert(host_interface_table_.size() == 0);
     if (agent_->test_mode()) {
@@ -170,6 +174,51 @@ void VnswInterfaceListenerBase::FabricRouteNotify(DBTablePartBase *part,
             e->SetState(part->parent(), fabric_listener_id_, state);
             revent_queue_->Enqueue(new Event(Event::ADD_LL_ROUTE,
                                              "", rt->addr().to_v4()));
+        }
+    }
+
+    return;
+}
+
+//guwei
+void VnswInterfaceListenerBase::FabricRouteIpv6Notify(DBTablePartBase *part,
+                                                  DBEntryBase *e) {
+    ostringstream oss;
+    const InetUnicastRouteEntry *rt = dynamic_cast<InetUnicastRouteEntry *>(e);
+    if (rt == NULL || rt->GetTableType() != Agent::INET6_UNICAST) {
+        oss << "guwei In  FabricRouteIpv6Notify rt is NULL or table type not inet6_unicast";
+        string msg = oss.str();
+        VNSWIF_TRACE(msg.c_str());
+        return;
+    }
+
+    /*guwei test.
+    oss << "guwei In  FabricRouteIpv6Notify ip addr:" << rt->addr().to_string();
+    string msg = oss.str();
+    VNSWIF_TRACE(msg.c_str());
+    return;*/
+
+    DBState *state = e->GetState(part->parent(), fabric_ipv6_listener_id_);
+
+    if (rt->IsDeleted()) {
+        if (state) {
+            e->ClearState(part->parent(), fabric_ipv6_listener_id_);
+            delete state;
+            revent_queue_->Enqueue(new Event(Event::DEL_LL_ROUTE,
+                                             "", rt->addr()));
+        }
+    } else {
+        // listen to only metadata ip routes
+        const AgentPath *path = rt->GetActivePath();
+        if (path == NULL || path->peer() != agent_->link_local_peer()) {
+            return;
+        }
+
+        if (state == NULL) {
+            state = new DBState();
+            e->SetState(part->parent(), fabric_ipv6_listener_id_, state);
+            revent_queue_->Enqueue(new Event(Event::ADD_LL_ROUTE,
+                                             "", rt->addr()));
         }
     }
 
@@ -347,7 +396,7 @@ void VnswInterfaceListenerBase::ResetAddress(const Event *event) {
         return;
     }
 
-    entry->addr_ = Ip4Address(0);
+    entry->addr_ = IpAddress();
     entry->plen_ = 0;
 }
 
@@ -363,7 +412,7 @@ void VnswInterfaceListenerBase::HandleAddressEvent(const Event *event) {
     // We dont yet handle delete of IP address or change of IP address
     if (event->event_ != Event::ADD_ADDR ||
         event->interface_ != agent_->vhost_interface_name() ||
-        event->addr_.to_ulong() == 0) {
+        event->addr_.to_v4().to_ulong() == 0) {
         return;
     }
 
@@ -397,7 +446,7 @@ void VnswInterfaceListenerBase::HandleAddressEvent(const Event *event) {
 
 void
 VnswInterfaceListenerBase::UpdateLinkLocalRouteAndCount(
-    const Ip4Address &addr, bool del_rt)
+    const IpAddress &addr, bool del_rt)
 {
     if (del_rt)
         ll_del_count_++;
@@ -413,7 +462,8 @@ VnswInterfaceListenerBase::UpdateLinkLocalRouteAndCount(
 void VnswInterfaceListenerBase::LinkLocalRouteFromLinkLocalEvent(Event *event) {
     if (event->event_ == Event::DEL_LL_ROUTE) {
         ll_addr_table_.erase(event->addr_);
-        UpdateLinkLocalRouteAndCount(event->addr_, true); } else {
+        UpdateLinkLocalRouteAndCount(event->addr_, true); 
+    } else {
             ll_addr_table_.insert(event->addr_);
         UpdateLinkLocalRouteAndCount(event->addr_, false);
     }

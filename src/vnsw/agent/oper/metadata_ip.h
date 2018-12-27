@@ -44,10 +44,16 @@ public:
 
     Ip4Address GetLinkLocalIp() const;
 
+    Ip6Address GetLinkLocalIp6() const;
+
     IpAddress service_ip() const;
+
+    IpAddress service_ip6() const;
 
     IpAddress destination_ip() const;
     void set_destination_ip(const IpAddress &dst_ip);
+
+    IpAddress destination_ip6() const;
 
     void set_active(bool active);
 

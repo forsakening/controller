@@ -8,6 +8,7 @@
 #include <oper/vm_interface.h>
 #include <oper/inet_unicast_route.h>
 #include <oper/metadata_ip.h>
+#include <boost/lexical_cast.hpp>
 
 const IpAddress MetaDataIp::kDefaultIp;
 
@@ -41,6 +42,17 @@ Ip4Address MetaDataIp::GetLinkLocalIp() const {
     return Ip4Address(ip);
 }
 
+/*guwei, add ipv6 linklocal*/
+Ip6Address MetaDataIp::GetLinkLocalIp6() const {
+    std::stringstream index_hex_string;
+    index_hex_string << std::hex << index_;
+    std::string metadata_ipv6 = "fe80::" + index_hex_string.str();
+    return Ip6Address::from_string(metadata_ipv6);
+    //uint32_t ip = METADATA_IP_ADDR & 0xFFFF0000;
+    //ip += (((uint32_t)index_) & 0xFFFF);
+    //return Ip6Address::v4_compatible(Ip4Address(ip));
+}
+
 IpAddress MetaDataIp::service_ip() const {
     // check if explicit configuration of service ip is present for
     // this metadata ip
@@ -61,10 +73,37 @@ IpAddress MetaDataIp::service_ip() const {
             return service_ip;
         }
         // if service IP is not available fallback to MetaData IP
+        //guwei TODO, need chanage.
         return Ip4Address(METADATA_IP_ADDR);
     }
     return service_ip_;
 }
+
+IpAddress MetaDataIp::service_ip6() const {
+    // check if explicit configuration of service ip is present for
+    // this metadata ip
+    if (service_ip_ == kDefaultIp) {
+        IpAddress service_ip;
+        if (type_ == HEALTH_CHECK) {
+            // for metadata IP type Health Check first verify
+            // if service health check ip is available on interface
+            service_ip =  intf_->service_health_check_ip();
+            if (service_ip != kDefaultIp) {
+                return service_ip;
+            }
+        }
+        // check if service ip on the primary ip addr of interface
+        // is available
+        service_ip = intf_->GetServiceIp(intf_->primary_ip6_addr());
+        if (service_ip != kDefaultIp) {
+            return service_ip;
+        }
+        // if service IP is not available fallback to MetaData IP
+        return Ip4Address(METADATA_IP_ADDR);
+    }
+    return service_ip_;
+}
+
 
 IpAddress MetaDataIp::destination_ip() const {
     if (destination_ip_.to_v4() == kDefaultIp) {
@@ -75,6 +114,14 @@ IpAddress MetaDataIp::destination_ip() const {
 
 void MetaDataIp::set_destination_ip(const IpAddress &dst_ip) {
     destination_ip_ = dst_ip;
+}
+
+//guwei
+IpAddress MetaDataIp::destination_ip6() const {
+    if (destination_ip_.to_v4() == kDefaultIp) {
+        return intf_->primary_ip6_addr();
+    }
+    return destination_ip_;
 }
 
 void MetaDataIp::set_active(bool active) {
@@ -150,11 +197,22 @@ void MetaDataIpAllocator::AddFabricRoute(MetaDataIp *ip) {
          vn_list, ip->intf_->label(), SecurityGroupList(),
          TagList(), CommunityList(), true, path_preference, Ip4Address(0),
          ecmp_load_balance, false, false, ip->intf_->name(), false);
+    //guwei
+    InetUnicastAgentRouteTable::AddLocalVmRoute
+        (agent_->link_local_peer(), agent_->fabric_vrf_name(),
+         ip->GetLinkLocalIp6(), 128, ip->intf_->GetUuid(),
+         vn_list, ip->intf_->label(), SecurityGroupList(),
+         TagList(), CommunityList(), true, path_preference, Ip4Address(0),
+         ecmp_load_balance, false, false, ip->intf_->name(), false);
 }
 
 void MetaDataIpAllocator::DelFabricRoute(MetaDataIp *ip) {
     InetUnicastAgentRouteTable::Delete(agent_->link_local_peer(),
                                        agent_->fabric_vrf_name(),
                                        ip->GetLinkLocalIp(), 32);
+    //guwei
+    InetUnicastAgentRouteTable::Delete(agent_->link_local_peer(),
+                                       agent_->fabric_vrf_name(),
+                                       ip->GetLinkLocalIp6(), 128);
 }
 

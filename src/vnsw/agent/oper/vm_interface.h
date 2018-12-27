@@ -416,7 +416,7 @@ public:
         PROXY_ARP_INVALID
     };
 
-    typedef std::map<Ip4Address, MetaDataIp*> MetaDataIpMap;
+    typedef std::map<IpAddress, MetaDataIp*> MetaDataIpMap;
     typedef std::set<HealthCheckInstanceBase *> HealthCheckInstanceSet;
 
     struct List {
@@ -1280,7 +1280,10 @@ public:
     }
 
     Ip4Address mdata_ip_addr() const;
-    MetaDataIp *GetMetaDataIp(const Ip4Address &ip) const;
+    MetaDataIp *GetMetaDataIp(const IpAddress &ip) const;
+    //guwei
+    Ip6Address mdata_ip6_addr() const;
+    MetaDataIp *GetMetaDataIp6(const Ip6Address &ip) const;
     void InsertMetaDataIpInfo(MetaDataIp *mip);
     void DeleteMetaDataIpInfo(MetaDataIp *mip);
     void UpdateMetaDataIpInfo();

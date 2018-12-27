@@ -551,7 +551,7 @@ void PktFlowInfo::LinkLocalServiceFromVm(const PktInfo *pkt, PktControlInfo *in,
                                          PktControlInfo *out) {
 
     // Link local services supported only for IPv4 for now
-    if (pkt->family != Address::INET) {
+    if (pkt->family != Address::INET && pkt->family != Address::INET6) {
         in->rt_ = NULL;
         out->rt_ = NULL;
         return;
@@ -614,7 +614,7 @@ void PktFlowInfo::LinkLocalServiceFromHost(const PktInfo *pkt, PktControlInfo *i
     }
 
     // Link local services supported only for IPv4 for now
-    if (pkt->family != Address::INET) {
+    if (pkt->family != Address::INET && pkt->family != Address::INET6) {
         in->rt_ = NULL; 
         out->rt_ = NULL; 
         return;
@@ -630,7 +630,7 @@ void PktFlowInfo::LinkLocalServiceFromHost(const PktInfo *pkt, PktControlInfo *i
     }
 
     // Check if packet is destined to metadata of interface
-    MetaDataIp *mip = vm_port->GetMetaDataIp(pkt->ip_daddr.to_v4());
+    MetaDataIp *mip = vm_port->GetMetaDataIp(pkt->ip_daddr);
     if (mip == NULL) {
         // Force implicit deny
         in->rt_ = NULL;
@@ -646,8 +646,13 @@ void PktFlowInfo::LinkLocalServiceFromHost(const PktInfo *pkt, PktControlInfo *i
     //the first packet in flow (HOLD flow flushing)
     InetUnicastRouteEntry *out_rt = NULL;
     if (out->vrf_) {
+        if (pkt->family == Address::INET){
         out_rt = static_cast<InetUnicastRouteEntry *>(
                      FlowEntry::GetUcRoute(out->vrf_, mip->destination_ip()));
+        }else{
+            out_rt = static_cast<InetUnicastRouteEntry *>(
+                     FlowEntry::GetUcRoute(out->vrf_, mip->destination_ip6()));           
+        }
         if (out_rt &&
             out_rt->GetActiveNextHop()->GetType() == NextHop::COMPOSITE) {
             const CompositeNH *comp_nh =
@@ -661,8 +666,13 @@ void PktFlowInfo::LinkLocalServiceFromHost(const PktInfo *pkt, PktControlInfo *i
     nat_done = true;
     underlay_flow = false;
     // Get NAT source/destination IP from MetadataIP retrieved from interface
+    if (pkt->family == Address::INET){
     nat_ip_saddr = mip->service_ip();
     nat_ip_daddr = mip->destination_ip();
+    }else{
+        nat_ip_saddr = mip->service_ip6();
+        nat_ip_daddr = mip->destination_ip6();
+    }
     if (nat_ip_saddr == IpAddress(kDefaultIpv4) ||
         nat_ip_saddr == IpAddress(kDefaultIpv6) ||
         nat_ip_daddr == IpAddress(kDefaultIpv4) ||

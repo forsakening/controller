@@ -238,6 +238,7 @@ class HealthCheckService : AgentRefCount<HealthCheckService>,
 public:
     enum HealthCheckType {
         PING,
+        PING6,
         HTTP,
         BFD,
         SEGMENT,

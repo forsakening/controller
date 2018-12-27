@@ -65,6 +65,12 @@ class HealthCheckPing(HealthCheckBase):
         return call(["ping", "-c2", "-W" + str(timeout), ip], stdout=out_fd,
                     stderr=out_fd)
 
+#guwei
+class HealthCheckPing6(HealthCheckBase):
+    def execute_util(self, ip, timeout, uri, out_fd):
+        return call(["ping6", "-Ivhost0", "-c2", "-W" + str(timeout), ip], stdout=out_fd,
+                    stderr=out_fd)
+
 class HealthCheckHttp(HealthCheckBase):
     def execute_util(self, ip, timeout, uri, out_fd):
         return call(["curl", "-m" + str(timeout), "http://" + ip + uri],
@@ -75,6 +81,9 @@ def HealthCheckService(x):
         "ping": HealthCheckPing,
         "Ping": HealthCheckPing,
         "PING": HealthCheckPing,
+        "ping6": HealthCheckPing6,
+        "Ping6": HealthCheckPing6,
+        "PING6": HealthCheckPing6,
         "http": HealthCheckHttp,
         "Http": HealthCheckHttp,
         "HTTP": HealthCheckHttp,
