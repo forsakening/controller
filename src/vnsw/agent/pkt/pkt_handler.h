@@ -188,20 +188,23 @@ struct TunnelInfo {
         label = -1;
         vxlan_id = -1;
         src_port = 0;
-        ip_saddr = 0;
-        ip_daddr = 0;
+        ip_saddr = IpAddress();
+        ip_daddr = IpAddress();
         eth = NULL;
         ip = NULL;
+        ip6 = NULL;
     }
 
+    //zx-ipv6 TODO
     TunnelType          type;
     uint32_t            label;      // Valid only for MPLSoGRE and MPLSoUDP
     uint32_t            vxlan_id;   // Valid only for VXLAN
     uint16_t            src_port;   // Valid only for VXLAN and MPLSoUDP
-    uint32_t            ip_saddr;
-    uint32_t            ip_daddr;
+    IpAddress           ip_saddr;
+    IpAddress           ip_daddr;
     struct ether_header *eth;
     struct ip           *ip;
+    struct ip6_hdr      *ip6;
 };
 
 // Receive packets from the pkt0 (tap) interface, parse and send the packet to

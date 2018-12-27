@@ -991,6 +991,9 @@ TunnelType::TypeBmap VNController::GetTypeBitmap
             bmap |= (1 << TunnelType::MPLS_GRE);
         if (encap == TunnelEncapType::MPLS_O_UDP)
             bmap |= (1 << TunnelType::MPLS_UDP);
+        //zx-ipv6
+        if (encap == TunnelEncapType::VXLAN)
+            bmap |= (1 << TunnelType::VXLAN);
         if (encap == TunnelEncapType::NATIVE)
             bmap |= (1 << TunnelType::NATIVE);
     }

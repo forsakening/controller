@@ -1460,7 +1460,8 @@ const NextHop *PktFlowInfo::TunnelToNexthop(const PktInfo *pkt) {
 
 void PktFlowInfo::EgressProcess(const PktInfo *pkt, PktControlInfo *in,
                                 PktControlInfo *out) {
-    peer_vrouter = Ip4Address(pkt->tunnel.ip_saddr).to_string();
+    //zx-ipv6
+    peer_vrouter = pkt->tunnel.ip_saddr.to_string();
 
     const NextHop *nh = TunnelToNexthop(pkt);
     if (nh == NULL) {

@@ -246,7 +246,8 @@ void RouteExport::UnicastNotify(AgentXmppChannel *bgp_xmpp_peer,
                         &path->sg_list(), &path->tag_list(), &path->communities(),
                         type, state->path_preference_,
                         state->ecmp_load_balance_);
-        }
+            }
+            
             //guwei
             if (path->NexthopIp6(table->agent())->to_v6().to_string() != "::"){
             //IpAddress ipv6 = IpAddress::from_string("333::2");

@@ -352,13 +352,33 @@ bool PktHandler::ComputeForwardingMode(PktInfo *pkt_info,
 }
 
 void PktHandler::SetOuterIp(PktInfo *pkt_info, uint8_t *pkt) {
-    if (pkt_info->ether_type != ETHERTYPE_IP) {
-        return;
+    //zx-ipv6
+    
+    if (pkt_info->ether_type == ETHERTYPE_IP) {
+        struct ip *ip_hdr = (struct ip *)pkt;
+        pkt_info->tunnel.ip = ip_hdr;
+        pkt_info->tunnel.ip_saddr = Ip4Address(ntohl(ip_hdr->ip_src.s_addr));
+        pkt_info->tunnel.ip_daddr = Ip4Address(ntohl(ip_hdr->ip_dst.s_addr));
     }
-    struct ip *ip_hdr = (struct ip *)pkt;
-    pkt_info->tunnel.ip = ip_hdr;
-    pkt_info->tunnel.ip_saddr = ntohl(ip_hdr->ip_src.s_addr);
-    pkt_info->tunnel.ip_daddr = ntohl(ip_hdr->ip_dst.s_addr);
+    else if (pkt_info->ether_type != ETHERTYPE_IPV6) {
+        struct ip6_hdr *ip_hdr = (struct ip6_hdr *)pkt;
+        pkt_info->tunnel.ip6 = ip_hdr;
+
+        Ip6Address::bytes_type addr;
+        for (int i = 0; i < 16; i++) {
+            addr[i] = ip_hdr->ip6_src.s6_addr[i];
+        }
+        pkt_info->tunnel.ip_saddr = Ip6Address(addr);
+
+        for (int i = 0; i < 16; i++) {
+            addr[i] = ip_hdr->ip6_dst.s6_addr[i];
+        }
+        pkt_info->tunnel.ip_daddr = Ip6Address(addr);
+    }
+    
+    
+
+    return;
 }
 
 void PktHandler::SetOuterMac(PktInfo *pkt_info) {
@@ -751,8 +771,8 @@ int PktHandler::ParseUserPkt(PktInfo *pkt_info, Interface *intf,
 
     int tunnel_len = 0;
     // Do tunnel processing only if IP-DA is ours
-    if (pkt_info->family == Address::INET &&
-        pkt_info->ip_daddr.to_v4() == agent_->router_id()) {
+    if ((pkt_info->family == Address::INET && pkt_info->ip_daddr.to_v4() == agent_->router_id()) ||
+        (pkt_info->family == Address::INET6 && pkt_info->ip_daddr.to_v6() == agent_->v6router_id())){
         // Look for supported headers
         switch (pkt_info->ip_proto) {
         case IPPROTO_GRE :

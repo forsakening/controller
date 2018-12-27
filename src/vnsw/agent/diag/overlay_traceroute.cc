@@ -211,11 +211,17 @@ void OverlayTraceRoute::HandleReply(DiagPktHandler *handler) {
         handler->set_done(true);
         done_ = true;
     }
-    struct ip *ip = handler->pkt_info()->tunnel.ip;
-    IpAddress saddr = IpAddress(Ip4Address(ntohl(ip->ip_src.s_addr)));
-    TraceRoute::SendSandeshReply(saddr.to_v4().to_string(), context_, 
-                                 !handler->IsDone());
-    IncrementTtl();
+
+    //zx-ipv6
+    
+    if (NULL != handler->pkt_info()->tunnel.ip)
+    {
+        struct ip *ip = handler->pkt_info()->tunnel.ip;
+        IpAddress saddr = IpAddress(Ip4Address(ntohl(ip->ip_src.s_addr)));
+        TraceRoute::SendSandeshReply(saddr.to_v4().to_string(), context_, 
+                                     !handler->IsDone());
+        IncrementTtl();
+    }
 }
 
 // Reply with local node as the first hop
