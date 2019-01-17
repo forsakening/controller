@@ -238,7 +238,7 @@ void RouteExport::UnicastNotify(AgentXmppChannel *bgp_xmpp_peer,
             VnListType vn_list;
             vn_list.insert(state->vn_);
             if (path->NexthopIp(table->agent())->to_v4().to_string() != "0.0.0.0"){
-            state->exported_ = 
+                state->exported_ = 
                 AgentXmppChannel::ControllerSendRouteAdd(bgp_xmpp_peer, 
                         static_cast<AgentRoute * >(route),
                         path->NexthopIp(table->agent()), vn_list,

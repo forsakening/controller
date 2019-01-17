@@ -59,26 +59,13 @@ public:
                           const std::string &vrf_name, SubType subtype,
                           EncapType encap, bool no_arp,
                           const boost::uuids::uuid &device_uuid,
-                          const Ip4Address &ip,
+                          const IpAddress &ip,
                           Interface::Transport transport);
     static void Create(InterfaceTable *table, const std::string &ifname,
                        const std::string &vrf_name, SubType subtype,
                        EncapType encap, bool no_arp,
                        const boost::uuids::uuid &device_uuid,
-                       const Ip4Address &ip,
-                       Interface::Transport transport_);
-
-    static void CreateReq(InterfaceTable *table, const std::string &ifname,
-                          const std::string &vrf_name, SubType subtype,
-                          EncapType encap, bool no_arp,
-                          const boost::uuids::uuid &device_uuid,
-                          const Ip6Address &ip,
-                          Interface::Transport transport);
-    static void Create(InterfaceTable *table, const std::string &ifname,
-                       const std::string &vrf_name, SubType subtype,
-                       EncapType encap, bool no_arp,
-                       const boost::uuids::uuid &device_uuid,
-                       const Ip6Address &ip,
+                       const IpAddress &ip,
                        Interface::Transport transport_);
     
     static void DeleteReq(InterfaceTable *table, const std::string &ifname);
@@ -99,6 +86,7 @@ private:
 };
 
 struct PhysicalInterfaceData : public InterfaceData {
+    //zx-ipv6
     PhysicalInterfaceData(Agent *agent, IFMapNode *node,
                           const std::string &vrf_name,
                           PhysicalInterface::SubType subtype,
@@ -106,17 +94,7 @@ struct PhysicalInterfaceData : public InterfaceData {
                           bool no_arp,
                           const boost::uuids::uuid &device_uuid,
                           const std::string &display_name,
-                          const Ip4Address &ip,
-                          Interface::Transport transport);
-
-    PhysicalInterfaceData(Agent *agent, IFMapNode *node,
-                          const std::string &vrf_name,
-                          PhysicalInterface::SubType subtype,
-                          PhysicalInterface::EncapType encap,
-                          bool no_arp,
-                          const boost::uuids::uuid &device_uuid,
-                          const std::string &display_name,
-                          const Ip6Address &ip,
+                          const IpAddress &ip,
                           Interface::Transport transport);
     
     PhysicalInterface::SubType subtype_;

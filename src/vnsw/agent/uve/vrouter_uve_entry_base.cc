@@ -520,8 +520,13 @@ void VrouterUveEntryBase::BuildAgentConfig(VrouterAgent &vrouter_agent) {
     vrouter_agent.set_ll_max_system_flows_cfg(param->linklocal_system_flows());
     vrouter_agent.set_ll_max_vm_flows_cfg(param->linklocal_vm_flows());
     vrouter_agent.set_max_vm_flows_cfg((uint32_t)param->max_vm_flows());
-    vrouter_agent.set_control_ip(param->mgmt_ip().to_string());
 
+    //zx-ipv6 
+    if (param->mgmt_ip6().to_string() != "::")
+        vrouter_agent.set_control_ip(param->mgmt_ip6().to_string());
+    else if (param->mgmt_ip().to_string() != "0.0.0.0")
+        vrouter_agent.set_control_ip(param->mgmt_ip().to_string());
+            
     vhost_cfg.set_name(param->vhost_name());
     vhost_cfg.set_ip(param->vhost_addr().to_string());
     vhost_cfg.set_ip_prefix_len(param->vhost_plen());
@@ -580,6 +585,7 @@ bool VrouterUveEntryBase::SendVrouterMsg() {
     static bool first = true, build_info = false;
     vrouter_agent.set_name(agent_->agent_name());
     Ip4Address rid = agent_->router_id();
+    Ip6Address rid6 = agent_->v6router_id();
     vector<string> ip_list;
     vector<string> dns_list;
 
@@ -715,8 +721,20 @@ bool VrouterUveEntryBase::SendVrouterMsg() {
         changed = true;
     }
     /* Self IP list should be populated only if router_id is  configured */
-    if (agent_->router_id_configured()) {
+    //zx-ipv6
+    if (agent_->router_id_configured() && (rid.to_string() != "0.0.0.0")) {
         ip_list.push_back(rid.to_string());
+        if (!prev_vrouter_.__isset.self_ip_list ||
+                prev_vrouter_.get_self_ip_list() != ip_list) {
+
+            vrouter_agent.set_self_ip_list(ip_list);
+            prev_vrouter_.set_self_ip_list(ip_list);
+            changed = true;
+        }
+    }
+
+    if (agent_->v6router_id_configured() && (rid6.to_string() != "::")) {
+        ip_list.push_back(rid6.to_string());
         if (!prev_vrouter_.__isset.self_ip_list ||
                 prev_vrouter_.get_self_ip_list() != ip_list) {
 

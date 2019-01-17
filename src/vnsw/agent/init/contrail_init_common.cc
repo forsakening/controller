@@ -166,6 +166,27 @@ void ContrailInitCommon::ProcessComputeAddress(AgentParam *param) {
     if (param->compute_node_address_list().size()) {
         agent()->set_compute_node_ip(param->compute_node_address_list()[0]);
     }
+
+    //zx-ipv6
+    //For now dual_stack, ipv6 also use fabric_inet4_unicast_table
+    //Cuz the VmInterfaceKey use string as the key, so if dual ip, ipv6 have high prority
+    const AgentParam::AddressList6 &addr_list6 =
+        param->compute_node_address_list6();
+    AgentParam::AddressList6::const_iterator it6 = addr_list6.begin();
+    while (it6 != addr_list6.end()) {
+        VmInterfaceKey vmi_key(AgentKey::ADD_DEL_CHANGE, nil_uuid(),
+                               param->vhost_name());
+        rt_table->AddVHostRecvRouteReq(agent()->local_peer(),
+                                       agent()->fabric_vrf_name(),
+                                       vmi_key, *it6, 128,
+                                       agent()->fabric_vn_name(), false,
+                                       true);
+        it6++;
+    }
+
+    if (param->compute_node_address_list6().size()) {
+        agent()->set_v6compute_node_ip(param->compute_node_address_list6()[0]);
+    }
 }
 
 void ContrailInitCommon::CreateInterfaces() {
@@ -187,14 +208,25 @@ void ContrailInitCommon::CreateInterfaces() {
     }
 
     type = ComputeEncapType(agent_param()->eth_port_encap_type());
-    //zx-ipv6
-    PhysicalInterface::Create(table, agent_param()->eth_port(),
-                              agent()->fabric_vrf_name(),
-                              PhysicalInterface::FABRIC, type,
-                              agent_param()->eth_port_no_arp(), nil_uuid(),
-                              //agent_param()->vhost_addr(),
-                              agent_param()->vhost_addr_v6(),
-                              physical_transport);
+    //zx-ipv6 TODO
+    //ipv6 priority high
+    if (agent_param()->vhost_addr_v6().to_string() != "::")
+        PhysicalInterface::Create(table, agent_param()->eth_port(),
+                                  agent()->fabric_vrf_name(),
+                                  PhysicalInterface::FABRIC, type,
+                                  agent_param()->eth_port_no_arp(), nil_uuid(),
+                                  agent_param()->vhost_addr_v6(),
+                                  physical_transport);
+    else if (agent_param()->vhost_addr().to_string() != "0.0.0.0")
+        PhysicalInterface::Create(table, agent_param()->eth_port(),
+                                  agent()->fabric_vrf_name(),
+                                  PhysicalInterface::FABRIC, type,
+                                  agent_param()->eth_port_no_arp(), nil_uuid(),
+                                  agent_param()->vhost_addr(),
+                                  physical_transport);
+    else
+        assert(0);
+    
     PhysicalInterfaceKey physical_key(agent()->fabric_interface_name());
     assert(table->FindActiveEntry(&physical_key));
 
@@ -225,9 +257,8 @@ void ContrailInitCommon::CreateInterfaces() {
                                   agent()->fabric_vrf_name(),
                                   PhysicalInterface::VMWARE,
                                   PhysicalInterface::ETHERNET, false,
-                                  //nil_uuid(), Ip4Address(0),
                                   //zx-ipv6
-                                  nil_uuid(), Ip6Address(),
+                                  nil_uuid(), IpAddress(),
                                   physical_transport);
     }
 

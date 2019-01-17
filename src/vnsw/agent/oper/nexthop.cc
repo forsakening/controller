@@ -906,8 +906,17 @@ bool TunnelNH::CanAdd() const {
         return false;
     }
 
+    
+
     if (dip_.to_string() == "0.0.0.0" || dip_.to_string() == "::") {
         LOG(ERROR, "Invalid tunnel-destination in TunnelNH");
+    }
+
+    //zx-ipv6
+    if (!(sip_.is_v4() && dip_.is_v4()) && !(sip_.is_v6() && dip_.is_v6()))
+    {
+        LOG(ERROR, "Invalid Sip and Dip in TunnelNH. Skip Add. Sip: " << sip_.to_string() << " Dip: " << dip_.to_string()); 
+        return false;
     }
 
     return true;

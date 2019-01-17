@@ -566,6 +566,10 @@ void AgentParam::ParseDnsArguments
 void AgentParam::ParseNetworksArguments
     (const boost::program_options::variables_map &var_map) {
     ParseIpArgument(var_map, mgmt_ip_, "NETWORKS.control_network_ip");
+    if (mgmt_ip_.to_string() == "0.0.0.0")
+    {
+        ParseIpArgument6(var_map, mgmt_ip6_, "NETWORKS.control_network_ip");
+    }
 }
 
 void AgentParam::ParseHypervisorArguments

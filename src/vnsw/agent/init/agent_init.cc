@@ -157,7 +157,7 @@ void AgentInit::SetResourceManagerReady() {
     InitDoneBase();
 
     Init();
-    agent_->set_init_done(true);
+    agent_->set_init_done(true);    
     ConnectToControllerBase();
 }
 
