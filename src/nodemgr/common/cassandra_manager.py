@@ -8,6 +8,7 @@ import socket
 import subprocess
 import platform
 import yaml
+import IPy
 from pysandesh.gen_py.sandesh.ttypes import SandeshLevel
 from sandesh_common.vns.constants import ThreadPoolNames,\
     SERVICE_CONTRAIL_DATABASE
@@ -33,15 +34,21 @@ class CassandraManager(object):
         self.cassandra_status_old = CassandraStatusData()
         self.cassandra_status_old.cassandra_compaction_task = CassandraCompactionTask()
         self.cassandra_status_old.thread_pool_stats = []
+        if IPy.IP(hostip).version() == 6:
+            self.nodetool_ip = "::1"
+        else:
+            self.nodetool_ip = "127.0.0.1"
 
     def status(self):
         subprocess.Popen(["contrail-cassandra-status",
+                          "--host", self.nodetool_ip,
                           "--log-file", "/var/log/cassandra/status.log",
                           "--debug"], close_fds=True)
 
     def repair(self):
         logdir = self.cassandra_repair_logdir + "repair.log"
         subprocess.Popen(["contrail-cassandra-repair",
+                          "--host", self.nodetool_ip,
                           "--log-file", logdir,
                           "--debug"], close_fds=True)
 
