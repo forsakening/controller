@@ -275,7 +275,8 @@ class CassandraManager(object):
         cassandra_status = CassandraStatusData()
         cassandra_status.cassandra_compaction_task = CassandraCompactionTask()
         # Get compactionstats
-        compaction_count = subprocess.Popen("nodetool compactionstats|grep 'pending tasks:'",
+        cpt_cmd = "nodetool -h " + self.nodetool_ip  + " compactionstats|grep 'pending tasks:'"
+        compaction_count = subprocess.Popen(cpt_cmd,
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             close_fds=True)
         op, err = compaction_count.communicate()
@@ -286,7 +287,7 @@ class CassandraManager(object):
         cassandra_status.cassandra_compaction_task.pending_compaction_tasks = \
             self.get_pending_compaction_count(op)
         # Get the tpstats value
-        tpstats_op = subprocess.Popen(["nodetool", "tpstats"], stdout=subprocess.PIPE,
+        tpstats_op = subprocess.Popen(["nodetool", "-h", self.nodetool_ip, "tpstats"], stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE, close_fds=True)
         op, err = tpstats_op.communicate()
         if tpstats_op.returncode != 0:
