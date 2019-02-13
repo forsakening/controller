@@ -2057,7 +2057,8 @@ bool VmInterface::StaticRoute::AddL3(const Agent *agent,
         vn_name  = agent->fabric_vn_name();
     }
 
-    if (gw_.is_v4() && addr_.is_v4() && gw_.to_v4() != Ip4Address(0)) {
+    if ((gw_.is_v4() && addr_.is_v4() && gw_.to_v4() != Ip4Address(0)) || 
+        (gw_.is_v6() && addr_.is_v6() && gw_.to_v6() != Ip6Address())){
         SecurityGroupList sg_id_list;
         vmi->CopySgIdList(&sg_id_list);
 
@@ -2076,8 +2077,8 @@ bool VmInterface::StaticRoute::AddL3(const Agent *agent,
         }
 
         InetUnicastAgentRouteTable::AddGatewayRoute
-            (vmi->peer_.get(), vrf_->GetName(), addr_.to_v4(), plen_,
-             gw_.to_v4(), vn_list, vmi->vrf_->table_label(),
+            (vmi->peer_.get(), vrf_->GetName(), addr_, plen_,
+             gw_, vn_list, vmi->vrf_->table_label(),
              sg_id_list, tag_id_list, communities_, native_encap);
     } else {
         IpAddress dependent_ip;

@@ -713,7 +713,8 @@ IpAddress VnEntry::GetDefaultRouteFromVnHostRoutes() const {
     for (index = 0; index < vn_ipam.size(); ++index){
         if (GetVnHostRoutes(vn_ipam[index].ipam_name, &routes)){
             for (i = 0; i < routes.size(); ++i){
-                if (routes[i].prefix_.to_string() == "0.0.0.0" && routes[i].plen_ == 0) {
+                if ((routes[i].prefix_.to_string() == "0.0.0.0" && routes[i].plen_ == 0)
+                    || (routes[i].prefix_.to_string() == "::" && routes[i].plen_ == 0)){
                     return routes[i].gw_;
                 }
             }
@@ -724,9 +725,6 @@ IpAddress VnEntry::GetDefaultRouteFromVnHostRoutes() const {
 
 IpAddress VnEntry::GetL3VxlanRouteGateway() const {
     for (uint32_t i = 0; i < static_route_.size(); ++i) {
-        if (static_route_[i].IsV6()) {
-            continue;
-        }
         if (static_route_[i].gw.to_string() != "0.0.0.0") {
             return static_route_[i].gw;
         }
@@ -736,9 +734,6 @@ IpAddress VnEntry::GetL3VxlanRouteGateway() const {
 
 bool VnEntry::GetL3VxlanRouteDestByGateway(IpAddress *prefix_addr, uint32_t *plen, IpAddress gw) const {
     for (uint32_t i = 0; i < static_route_.size(); ++i) {
-        if (static_route_[i].IsV6()) {
-            continue;
-        }
         if (static_route_[i].gw.to_string() == gw.to_string()) {
             *prefix_addr = static_route_[i].ip_prefix;
             *plen  = static_route_[i].plen;

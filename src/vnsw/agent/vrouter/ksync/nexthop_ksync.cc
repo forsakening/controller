@@ -970,11 +970,22 @@ int NHKSyncEntry::Encode(sandesh_op::type op, char *buf, int buf_len) {
             std::vector<int> sub_label_list;
             std::vector<int> sub_flag_list;
             encoder.set_nhr_type(NH_COMPOSITE);
-            assert(sip_.is_v4());
-            assert(dip_.is_v4());
+            //zx-ipv6
+            //assert(sip_.is_v4());
+            //assert(dip_.is_v4());
             /* TODO encoding */
-            encoder.set_nhr_tun_sip(htonl(sip_.to_v4().to_ulong()));
-            encoder.set_nhr_tun_dip(htonl(dip_.to_v4().to_ulong()));
+            if (sip_.is_v4() && dip_.is_v4())
+            {
+                encoder.set_nhr_tun_sip(htonl(sip_.to_v4().to_ulong()));
+                encoder.set_nhr_tun_dip(htonl(dip_.to_v4().to_ulong()));
+            } else if (sip_.is_v6() && dip_.is_v6()) {
+                boost::array<unsigned char, 16> bytes = sip_.to_v6().to_bytes();
+                std::vector<int8_t> sip_vector(bytes.begin(), bytes.end());
+                bytes = dip_.to_v6().to_bytes();
+                std::vector<int8_t> dip_vector(bytes.begin(), bytes.end());
+                encoder.set_nhr_tun_sip6(sip_vector);
+                encoder.set_nhr_tun_dip6(dip_vector);
+            } 
             encoder.set_nhr_encap_family(ETHERTYPE_ARP);
             encoder.set_nhr_ecmp_config_hash(SetEcmpFieldsToUse());
             /* Proto encode in Network byte order */

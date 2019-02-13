@@ -314,8 +314,8 @@ bool RouteKSyncEntry::BuildArpFlags(const DBEntry *e, const AgentPath *path,
         } else {
             // Non local-route. Set flags based on the route
             proxy_arp = rt->proxy_arp();
-            flood = rt->ipam_host_route();
-            //flood = rt->ipam_subnet_route();
+            flood = rt->ipam_subnet_route();
+            //flood = rt->ipam_host_route();
         }
         break;
     }

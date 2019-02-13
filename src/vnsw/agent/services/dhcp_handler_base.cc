@@ -391,19 +391,60 @@ void DhcpHandlerBase::ReadClasslessRoute(uint32_t option, uint16_t opt_len,
         std::string snetstr;
         value >> snetstr;
         OperDhcpOptions::HostRoute host_route;
-        boost::system::error_code ec = Ip4PrefixParse(snetstr, &host_route.prefix_,
-                                                      (int *)&host_route.plen_);
-        if (ec || host_route.plen_ > 32 || !value.good()) {
+        if (string::npos != snetstr.find("."))
+        {
+            int        _len;
+            Ip4Address v4addr;
+            boost::system::error_code ec = Ip4PrefixParse(snetstr, &v4addr, &_len);
+            if (ec || _len > 32 || !value.good()) {
             DHCP_BASE_TRACE("Invalid Classless route DHCP option -"
                             "has to be list of <subnet/plen gw>");
             break;
         }
 
         value >> snetstr;
+            if (string::npos == snetstr.find("."))
+            {
+                DHCP_BASE_TRACE("Invalid Classless route DHCP option -"
+                                "subnet/plen is v4, but gw not v4");
+                break;
+            }
+
+            host_route.plen_   = _len;
+            host_route.prefix_ = v4addr;
         host_route.gw_ = Ip4Address::from_string(snetstr, ec);
         if (ec) {
             host_route.gw_ = Ip4Address();
         }
+        }
+        else if (string::npos != snetstr.find(":"))
+        {
+            int        _len;
+            Ip6Address v6addr;
+            boost::system::error_code ec = Inet6PrefixParse(snetstr, &v6addr, &_len);
+            if (ec || _len > 128 || !value.good()) {
+                DHCP_BASE_TRACE("Invalid Classless route DHCP option -"
+                                "has to be list of <subnet/plen gw>");
+                break;
+            }
+
+            value >> snetstr;
+            if (string::npos == snetstr.find(":"))
+            {
+                DHCP_BASE_TRACE("Invalid Classless route DHCP option -"
+                                "subnet/plen is v6, but gw not v6");
+                break;
+            }
+
+            host_route.plen_   = _len;
+            host_route.prefix_ = v6addr;
+            host_route.gw_ = Ip6Address::from_string(snetstr, ec);
+            if (ec) {
+                host_route.gw_ = Ip6Address();
+            }
+        }
+        else
+            continue;
 
         host_routes_.push_back(host_route);
     }
@@ -473,14 +514,29 @@ uint16_t DhcpHandlerBase::AddClasslessRouteOption(uint16_t opt_len) {
         }
     } while (false);
 
+    //if has v4 and v6 host routes, just pass the v4 routes
+    bool v4_hroute_flag = false;
     if (host_routes.size()) {
+        for (uint32_t i = 0; i < host_routes.size(); ++i) {
+            if (host_routes[i].prefix_.is_v4())
+            {
+                v4_hroute_flag = true;
+                break;
+            }
+        }
+    }
+
+    if (v4_hroute_flag)
+    {
         option_->SetCode(DHCP_OPTION_CLASSLESS_ROUTE);
         uint8_t *ptr = option_->GetData();
         uint8_t len = 0;
         for (uint32_t i = 0; i < host_routes.size(); ++i) {
-            uint32_t prefix = host_routes[i].prefix_.to_ulong();
+            if (host_routes[i].prefix_.is_v4())
+            {
+                uint32_t prefix = host_routes[i].prefix_.to_v4().to_ulong();
             uint32_t plen = host_routes[i].plen_;
-            uint32_t gw = host_routes[i].gw_.to_ulong();
+                uint32_t gw = host_routes[i].gw_.to_v4().to_ulong();
             *ptr++ = plen;
             len++;
             for (unsigned int j = 0; plen && j <= (plen - 1) / 8; ++j) {
@@ -495,10 +551,14 @@ uint16_t DhcpHandlerBase::AddClasslessRouteOption(uint16_t opt_len) {
             ptr += sizeof(uint32_t);
             len += sizeof(uint32_t);
         }
+            else
+                continue;
+        }
         option_->SetLen(len);
         opt_len += 2 + len;
         set_flag(DHCP_OPTION_CLASSLESS_ROUTE);
     }
+    
     return opt_len;
 }
 

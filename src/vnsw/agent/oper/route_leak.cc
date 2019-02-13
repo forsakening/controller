@@ -304,11 +304,21 @@ void RouteLeakVrfState::AddDefaultRoute() {
     VnListType vn_list;
     vn_list.insert(table->agent()->fabric_vn_name());
 
-    table->AddGatewayRoute(table->agent()->local_peer(),
-                           source_vrf_->GetName(), Ip4Address(0), 0,
-                           table->agent()->vhost_default_gateway(), vn_list,
-                           MplsTable::kInvalidLabel, SecurityGroupList(),
-                           TagList(), CommunityList(), true);
+
+    //zx-ipv6
+    if (table->agent()->vhost_default_gateway().to_string() != "0.0.0.0")
+        table->AddGatewayRoute(table->agent()->local_peer(),
+                               source_vrf_->GetName(), Ip4Address(0), 0,
+                               table->agent()->vhost_default_gateway(), vn_list,
+                               MplsTable::kInvalidLabel, SecurityGroupList(),
+                               TagList(), CommunityList(), true);
+
+    if (table->agent()->vhost_default_v6gateway().to_string() != "::")
+        table->AddGatewayRoute(table->agent()->local_peer(),
+                               source_vrf_->GetName(), Ip6Address(), 0,
+                               table->agent()->vhost_default_v6gateway(), vn_list,
+                               MplsTable::kInvalidLabel, SecurityGroupList(),
+                               TagList(), CommunityList(), true);
 }
 
 void RouteLeakVrfState::DeleteDefaultRoute() {

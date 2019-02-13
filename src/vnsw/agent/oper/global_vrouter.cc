@@ -917,7 +917,7 @@ void GlobalVrouter::AddGlobalStaticRoute(std::vector<GlobalStaticRoute>::iterato
     vn_list.insert(agent()->fabric_vn_name());
     InetUnicastAgentRouteTable *table = agent()->fabric_inet4_unicast_table();
     table->AddGatewayRoute(agent()->local_peer(), agent()->fabric_vrf_name(),
-                         it->prefix_.to_v4(), it->plen_, it->gw_.to_v4(),
+                         it->prefix_, it->plen_, it->gw_,
                           vn_list, MplsTable::kInvalidLabel, SecurityGroupList(),
                           TagList(), CommunityList(), true);
 }

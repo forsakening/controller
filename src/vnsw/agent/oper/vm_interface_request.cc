@@ -228,10 +228,18 @@ void VmInterfaceConfigData::CopyVhostData(const Agent *agent) {
     vm_mac_ = pif->mac().ToString();
 
     //Add default route pointing to gateway
-    static_route_list_.list_.insert(
-            VmInterface::StaticRoute(Ip4Address(0), 0,
-                                     agent->params()->vhost_gw(),
-                                     CommunityList()));
+    //zx-ipv6
+    if (agent->params()->vhost_gw().to_string() != "0.0.0.0")
+        static_route_list_.list_.insert(
+                VmInterface::StaticRoute(Ip4Address(0), 0,
+                                         agent->params()->vhost_gw(),
+                                         CommunityList()));
+
+    if (agent->params()->vhost_gw_v6().to_string() != "::")
+        static_route_list_.list_.insert(
+                VmInterface::StaticRoute(Ip6Address(), 0,
+                                         agent->params()->vhost_gw_v6(),
+                                         CommunityList()));
 }
 
 

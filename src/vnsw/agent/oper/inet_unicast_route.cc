@@ -590,9 +590,13 @@ bool Inet4UnicastGatewayRoute::AddChangePathExtended(Agent *agent, AgentPath *pa
     path->set_vrf_name(vrf_name_);
 
     InetUnicastAgentRouteTable *table = NULL;
-    table = static_cast<InetUnicastAgentRouteTable *>
-        (agent->vrf_table()->GetInet4UnicastRouteTable(vrf_name_));
-    InetUnicastRouteEntry *rt = table->FindRoute(gw_ip_); 
+    if (gw_ip_.is_v6())
+        table = static_cast<InetUnicastAgentRouteTable *>
+            (agent->vrf_table()->GetInet6UnicastRouteTable(vrf_name_));
+    else
+        table = static_cast<InetUnicastAgentRouteTable *>
+            (agent->vrf_table()->GetInet4UnicastRouteTable(vrf_name_));
+    InetUnicastRouteEntry *rt = table->FindRoute(gw_ip_);
     if (rt == NULL || rt->plen() == 0) {
         path->set_unresolved(true);
     } else if (rt->GetActiveNextHop()->GetType() == NextHop::RESOLVE) {
@@ -603,7 +607,7 @@ bool Inet4UnicastGatewayRoute::AddChangePathExtended(Agent *agent, AgentPath *pa
         if (nh->interface()->vrf()->forwarding_vrf()) {
             nexthop_vrf = nh->interface()->vrf()->forwarding_vrf()->GetName();
         }
-        InetUnicastAgentRouteTable::AddArpReq(vrf_name_, gw_ip_.to_v4(),
+        InetUnicastAgentRouteTable::AddArpReq(vrf_name_, gw_ip_,
                                               nexthop_vrf,
                                               nh->interface(), nh->PolicyEnabled(),
                                               vn_list_, sg_list_, tag_list_);

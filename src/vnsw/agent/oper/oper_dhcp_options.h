@@ -19,9 +19,9 @@ public:
     typedef std::vector<autogen::RouteType> HostOptionsList;
 
     struct HostRoute {
-        Ip4Address prefix_;
+        IpAddress prefix_;
         uint32_t plen_;
-        Ip4Address gw_;
+        IpAddress gw_;
 
         HostRoute() : prefix_(), plen_(0), gw_() {}
         bool operator<(const HostRoute &rhs) const {
@@ -36,7 +36,7 @@ public:
                    gw_ == rhs.gw_;
         }
         std::string ToString() const { 
-            char len[32];
+            char len[128];
             snprintf(len, sizeof(len), "%u", plen_);
             return prefix_.to_string() + "/" + std::string(len) +
                    " -> " + gw_.to_string();
@@ -61,16 +61,45 @@ public:
         host_routes_.clear();
         for (unsigned int i = 0; i < host_routes.size(); ++i) {
             HostRoute host_route;
+            if (string::npos != host_routes[i].prefix.find("."))
+            {
+                int        _len;
+                Ip4Address v4addr;
             boost::system::error_code ec = Ip4PrefixParse(host_routes[i].prefix,
-                                                          &host_route.prefix_,
-                                                          (int *)&host_route.plen_);
-            if (ec || host_route.plen_ > 32) {
+                                                              &v4addr,
+                                                              &_len);
+                if (ec || _len > 32) {
                 continue;
             }
+
+                host_route.prefix_ = v4addr;
+                host_route.plen_   = _len;
             host_route.gw_ = Ip4Address::from_string(host_routes[i].next_hop, ec);
             if (ec) {
                 host_route.gw_ = Ip4Address();
             }
+            }
+            else if (string::npos != host_routes[i].prefix.find(":"))
+            {
+                int        _len;
+                Ip6Address v6addr;
+                boost::system::error_code ec = Inet6PrefixParse(host_routes[i].prefix,
+                                                                &v6addr,
+                                                                &_len);
+                if (ec || _len > 128) {
+                    continue;
+                }
+
+                host_route.prefix_ = v6addr;
+                host_route.plen_   = _len;
+                host_route.gw_ = Ip6Address::from_string(host_routes[i].next_hop, ec);
+                if (ec) {
+                    host_route.gw_ = Ip6Address();
+                }
+            }
+            else
+                continue;
+            
             host_routes_.push_back(host_route);
         }
     }

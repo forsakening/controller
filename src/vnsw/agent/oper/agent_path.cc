@@ -327,8 +327,9 @@ bool AgentPath::Sync(AgentRoute *sync_route) {
             nexthop_vrf = nh->interface()->vrf()->forwarding_vrf()->GetName();
         }
 
-        assert(gw_ip_.is_v4());
-        table->AddArpReq(vrf_name_, gw_ip_.to_v4(), nexthop_vrf,
+        //zx-ipv6
+        //assert(gw_ip_.is_v4());
+        table->AddArpReq(vrf_name_, gw_ip_, nexthop_vrf,
                          nh->interface(), nh->PolicyEnabled(), dest_vn_list_,
                          sg_list_, tag_list_);
         unresolved = true;
@@ -1360,7 +1361,7 @@ void AgentRoute::FillTrace(RouteInfo &rt_info, Trace event,
         if (path->peer()) {
             rt_info.set_peer(path->peer()->GetName());
         }
-        rt_info.set_ecmp(path->path_preference().ecmp());
+        rt_info.set_ecmp(path->path_preference().ecmp());        
         const NextHop *nh = path->ComputeNextHop(agent);
         if (nh == NULL) {
             rt_info.set_nh_type("<NULL>");
